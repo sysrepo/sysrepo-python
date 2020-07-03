@@ -1,0 +1,70 @@
+module sysrepo-example {
+  namespace n;
+  prefix p;
+
+  feature turbo;
+
+  grouping data {
+    container system {
+      leaf hostname {
+        type string;
+      }
+    }
+    container network {
+      list interface {
+        key name;
+        leaf name {
+          type string;
+        }
+        leaf up {
+          type boolean;
+        }
+        leaf address {
+          type string;
+        }
+        leaf speed {
+          if-feature turbo;
+          type uint64;
+        }
+      }
+    }
+
+  }
+
+  container conf {
+    uses data;
+  }
+
+  container state {
+    config false;
+    uses data {
+      augment 'network/interface' {
+        container stats {
+          leaf rx {
+            type uint64;
+          }
+          leaf tx {
+            type uint64;
+          }
+        }
+      }
+    }
+  }
+
+  rpc poweroff {
+    input {
+      leaf behaviour {
+        type enumeration {
+          enum bad-output;
+          enum failure;
+          enum success;
+        }
+      }
+    }
+    output {
+      leaf message {
+        type string;
+      }
+    }
+  }
+}
