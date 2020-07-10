@@ -733,7 +733,7 @@ class SysrepoSession:
         """
         ctx = self.get_ly_ctx()
         module = ctx.get_module(module_name)
-        dnode = module.parse_data_dict(edit, config=True, strict=strict, validate=False)
+        dnode = module.parse_data_dict(edit, edit=True, strict=strict, validate=False)
         if not dnode:
             raise ValueError("provided config dict is empty")
         try:
@@ -799,7 +799,7 @@ class SysrepoSession:
         """
         ctx = self.get_ly_ctx()
         module = ctx.get_module(module_name)
-        dnode = module.parse_data_dict(config, config=True, strict=strict)
+        dnode = module.parse_data_dict(config, edit=True, strict=strict)
         self.replace_config_ly(dnode, module_name, timeout_ms=timeout_ms, wait=wait)
 
     def validate(self) -> None:
