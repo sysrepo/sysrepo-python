@@ -3,6 +3,7 @@
 
 import os
 import shlex
+from typing import List
 
 import cffi
 
@@ -13,8 +14,18 @@ BUILDER = cffi.FFI()
 with open(os.path.join(HERE, "cdefs.h")) as f:
     BUILDER.cdef(f.read())
 
-HEADERS = os.environ.get("SYSREPO_HEADERS", "").strip().split(":")
-LIBRARIES = os.environ.get("SYSREPO_LIBRARIES", "").strip().split(":")
+
+def search_paths(env_var: str) -> List[str]:
+    paths = []
+    for p in os.environ.get(env_var, "").strip().split(":"):
+        p = p.strip()
+        if p:
+            paths.append(p)
+    return paths
+
+
+HEADERS = search_paths("SYSREPO_HEADERS")
+LIBRARIES = search_paths("SYSREPO_LIBRARIES")
 EXTRA_CFLAGS = ["-Werror", "-std=c99"]
 EXTRA_CFLAGS += shlex.split(os.environ.get("SYSREPO_EXTRA_CFLAGS", ""))
 EXTRA_LDFLAGS = shlex.split(os.environ.get("SYSREPO_EXTRA_LDFLAGS", ""))
