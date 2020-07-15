@@ -113,6 +113,47 @@ Subscription
 
 See the ``examples/`` folder for more details.
 
+Differences With ``libsysrepo.so`` C API
+========================================
+
+This project has been created with Python users in mind. In order to get a more
+pythonic API there are significant divergences with the C API.
+
+Supported Features
+------------------
+
+-  Connection handling (``sr_connect()``, ``sr_disconnect()``)
+-  YANG modules management (``sr_install_module()``, ``sr_remove_module()``)
+-  libyang context retrieval (``sr_get_context()`` wrapped using the `libyang
+   CFFI bindings`__).
+-  Session management (``sr_session_start()``, ``sr_session_stop()``,
+   ``sr_session_switch_ds()``, ``sr_session_get_ds()``, ``sr_unsubscribe()``)
+-  Module change subscriptions (``sr_module_change_subscribe()`` also with
+   async_ callbacks, ``sr_get_changes_iter()``).
+-  Operational data subscriptions (``sr_oper_get_items_subscribe()`` also with
+   async_ callbacks).
+-  RPC call subscriptions (``sr_rpc_subscribe_tree()`` also with async_
+   callbacks).
+-  RPC calling (``sr_rpc_send_tree()``)
+-  Datastore edition (``sr_set_item_str()``, ``sr_delete_item()``,
+   ``sr_edit_batch()``, ``sr_validate()``, ``sr_apply_changes()``,
+   ``sr_discard_changes()``, ``sr_replace_config()``)
+-  Get data (``sr_get_data()``, ``sr_get_item()``, ``sr_get_items()``)
+
+__ https://pypi.org/project/libyang/
+.. _async: https://docs.python.org/3/library/asyncio-task.html#coroutine
+
+Not Yet Supported Features
+--------------------------
+
+All other features are not yet supported by sysrepo-python. The most notable
+are:
+
+-  Action support (via ``sr_rpc_*``)
+-  Notification support (``sr_event_notif_*``)
+-  Module locking (``sr_*lock*``)
+-  Module management (``sr_*_module_*``)
+
 Contributing
 ============
 
