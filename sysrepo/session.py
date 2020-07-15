@@ -799,7 +799,7 @@ class SysrepoSession:
         """
         ctx = self.get_ly_ctx()
         module = ctx.get_module(module_name)
-        dnode = module.parse_data_dict(config, edit=True, strict=strict)
+        dnode = module.parse_data_dict(config, edit=True, strict=strict, validate=False)
         self.replace_config_ly(dnode, module_name, timeout_ms=timeout_ms, wait=wait)
 
     def validate(self) -> None:
@@ -918,7 +918,9 @@ class SysrepoSession:
         """
         ctx = self.get_ly_ctx()
         module = ctx.get_module(module_name)
-        in_dnode = module.parse_data_dict(input_dict, rpc=True, strict=strict)
+        in_dnode = module.parse_data_dict(
+            input_dict, rpc=True, strict=strict, validate=False
+        )
         try:
             out_dnode = self.rpc_send_ly(in_dnode, timeout_ms=timeout_ms)
         finally:

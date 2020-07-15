@@ -342,7 +342,7 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
             # convert oper_data to a libyang.DNode object
             ly_ctx = session.get_ly_ctx()
             dnode = ly_ctx.get_module(module).parse_data_dict(
-                oper_data, data=True, no_yanglib=True, strict=subscription.strict
+                oper_data, data=True, strict=subscription.strict, validate=False
             )
             if dnode is not None:
                 if parent[0]:
@@ -461,7 +461,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
                 output_dict = output_dict[name_prefix]
             dnode = DNode.new(ly_ctx, output_node)
             dnode.merge_data_dict(
-                output_dict, rpcreply=True, strict=subscription.strict
+                output_dict, rpcreply=True, strict=subscription.strict, validate=False
             )
         elif output_dict is not None:
             raise TypeError(
