@@ -321,19 +321,45 @@ class SysrepoSession:
 
         self.subscriptions.append(sub)
 
-    RpcCallbackType = Callable[[Dict, str, Any], Optional[Dict]]
+    RpcCallbackType = Callable[[str, Dict, str, Any], Optional[Dict]]
     """
     Callback to be called when the RPC/action is invoked.
 
-    :arg rpc_input:
-        The RPC input arguments in a python dictionary. If there are any input
-        parameters, the first level of the dictionary will have only one key with the
-        name of the RPC::
+    :arg xpath:
+        The full data path to the invoked RPC/action. When it is an RPC, the form is
+        `/prefix:rpc-name`. When it is an action, it is the full data path with all
+        parent nodes: `/prefix:container/list[key="val"]/action-name`.
+    :arg input_params:
+        The input arguments in a python dictionary. The contents are limited to the
+        children of the "input" node. For example, with a YANG rpc defined like this::
 
-            {'rpc-name': {'param1': 42, 'param2': 'foobar'}}
+            rpc rpc-name {
+              input {
+                leaf param1 {
+                  type uint32;
+                }
+                leaf param2 {
+                  type string;
+                }
+              }
+              output {
+                leaf foo {
+                  type int8;
+                }
+                leaf bar {
+                  type string;
+                }
+              }
+            }
 
-        If there are no input parameters provided by the client, the dictionary will be
-        empty: ``{}``.
+        The input_params dict may look like this::
+
+            {'param1': 42, 'param2': 'foobar'}
+
+        If there are no input parameters provided by the client, the dict will be empty.
+
+        For actions, the xpath argument allows to determine the parent node of the
+        action input parameters.
     :arg event:
         In most cases, it is always 'rpc'. When multiple callbacks are registered for
         the same RPC and one of the callbacks failed. The remainder of the callbacks
@@ -342,11 +368,16 @@ class SysrepoSession:
         Private context opaque to sysrepo used when subscribing.
 
     The callback is expected to return a python dictionary containing the RPC output
-    data. The dictionary should be in the libyang "dict" format. It will be passed to
-    libyang.DRpc.merge_data_dict() to return output data to sysrepo. If the callback
-    returns None, nothing is returned to sysrepo. If the callback raises an exception,
-    the error message is forwarded to the client that called the RPC. If the exception
-    is a subclass of SysrepoError, no traceback is sent to the logging system.
+    data. The dictionary should be in the libyang "dict" format and must only contain
+    the actual output parameters without any parents. Using the previous example::
+
+        {'foo': 47, 'bar': 'baz'}
+
+    It will be passed to libyang.DRpc.merge_data_dict() to return output data to
+    sysrepo. If the callback returns None, nothing is returned to sysrepo. If the
+    callback raises an exception, the error message is forwarded to the client that
+    called the RPC. If the exception is a subclass of SysrepoError, no traceback is sent
+    to the logging system.
     """
 
     def subscribe_rpc_call(

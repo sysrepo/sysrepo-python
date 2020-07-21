@@ -113,10 +113,11 @@ async def oper_data_cb(xpath, private_data):
 
 
 # ------------------------------------------------------------------------------
-async def poweroff(rpc_input, event, private_data):
+async def poweroff(xpath, input_params, event, private_data):
     print()
     print("========================")
-    print("RPC call: %s" % rpc_input)
+    print("RPC call: %s" % xpath)
+    print("params: %s" % input_params)
     out = {"poweroff": {"message": "bye bye"}}
     print("returning %s" % out)
     print("---------------")
