@@ -68,11 +68,10 @@ def main():
 
 
 # ------------------------------------------------------------------------------
-async def module_change_cb(event, req_id, config, changes, private_data):
+async def module_change_cb(event, req_id, changes, private_data):
     print()
     print("========================")
     print("Module changed event: %s (request ID %s)" % (event, req_id))
-    print("config = %s" % config)
     print("----- changes -----")
     for c in changes:
         print(repr(c))
