@@ -80,7 +80,7 @@ class RpcSubscriptionTest(unittest.TestCase):
             duration = input_params["duration"]
             return {"message": "triggered for %r seconds" % (duration,)}
 
-        def module_change_cb(event, req_id, config, changes, private_data):
+        def module_change_cb(event, req_id, changes, private_data):
             # unused
             pass
 

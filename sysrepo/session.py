@@ -16,7 +16,7 @@ from .errors import (
     check_call,
 )
 from .subscription import Subscription
-from .util import str2c
+from .util import c2str, str2c
 from .value import Value
 
 
@@ -137,7 +137,7 @@ class SysrepoSession:
     # end: general
 
     # begin: subscription
-    ModuleChangeCallbackType = Callable[[str, int, Dict, List[Change], Any], None]
+    ModuleChangeCallbackType = Callable[[str, int, List[Change], Any], None]
     """
     Callback to be called when the change in the datastore occurs.
 
@@ -147,11 +147,6 @@ class SysrepoSession:
     :arg req_id:
         Request ID unique for the specific module name. Connected events for one request
         ("change" and "done" for example) have the same request ID.
-    :arg config:
-        The configuration tree in a python dictionary. The contents are filtered
-        according to xpath (if set). If event is "update", "change" or "enabled", this
-        is the yet-to-be-applied configuration. If event is "done", this is the current
-        configuration that was just applied.
     :arg changes:
         List of `sysrepo.Change` objects representing what parts of the configuration
         have changed.
@@ -460,30 +455,44 @@ class SysrepoSession:
         check_call(lib.sr_get_changes_iter, self.cdata, str2c(xpath), iter_p)
 
         op_p = ffi.new("sr_change_oper_t *")
-        old_p = ffi.new("sr_val_t **")
-        new_p = ffi.new("sr_val_t **")
+        node_p = ffi.new("struct lyd_node **")
+        prev_val_p = ffi.new("char **")
+        prev_list_p = ffi.new("char **")
+        prev_dflt_p = ffi.new("bool *")
+        ctx = self.get_ly_ctx()
 
         try:
             ret = check_call(
-                lib.sr_get_change_next,
+                lib.sr_get_change_tree_next,
                 self.cdata,
                 iter_p[0],
                 op_p,
-                old_p,
-                new_p,
+                node_p,
+                prev_val_p,
+                prev_list_p,
+                prev_dflt_p,
                 valid_codes=(lib.SR_ERR_OK, lib.SR_ERR_NOT_FOUND),
             )
             while ret == lib.SR_ERR_OK:
-                yield Change.parse(op_p[0], old=old_p[0], new=new_p[0])
-                lib.sr_free_val(old_p[0])
-                lib.sr_free_val(new_p[0])
+                try:
+                    yield Change.parse(
+                        operation=op_p[0],
+                        node=libyang.DNode.new(ctx, node_p[0]),
+                        prev_val=c2str(prev_val_p[0]),
+                        prev_list=c2str(prev_list_p[0]),
+                        prev_dflt=bool(prev_dflt_p[0]),
+                    )
+                except Change.Skip:
+                    pass
                 ret = check_call(
-                    lib.sr_get_change_next,
+                    lib.sr_get_change_tree_next,
                     self.cdata,
                     iter_p[0],
                     op_p,
-                    old_p,
-                    new_p,
+                    node_p,
+                    prev_val_p,
+                    prev_list_p,
+                    prev_dflt_p,
                     valid_codes=(lib.SR_ERR_OK, lib.SR_ERR_NOT_FOUND),
                 )
         finally:

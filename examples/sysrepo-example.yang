@@ -13,6 +13,7 @@ module sysrepo-example {
     }
     container network {
       list interface {
+        ordered-by user;
         key name;
         leaf name {
           type string;

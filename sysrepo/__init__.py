@@ -4,7 +4,14 @@
 import logging
 
 from _sysrepo import ffi, lib
-from .change import Change, ChangeCreated, ChangeDeleted, ChangeModified, ChangeMoved
+from .change import (
+    Change,
+    ChangeCreated,
+    ChangeDeleted,
+    ChangeModified,
+    ChangeMoved,
+    update_config_cache,
+)
 from .connection import SysrepoConnection
 from .errors import (
     SysrepoCallbackFailedError,
@@ -59,6 +66,7 @@ __all__ = [
     "ChangeDeleted",
     "ChangeModified",
     "ChangeMoved",
+    "update_config_cache",
     "SysrepoError",
     "SysrepoCallbackFailedError",
     "SysrepoCallbackShelveError",

@@ -9,7 +9,7 @@ from typing import Any, Callable
 from libyang.data import DNode
 
 from _sysrepo import ffi, lib
-from .errors import SysrepoError, SysrepoNotFoundError, check_call
+from .errors import SysrepoError, check_call
 from .util import c2str, is_async_func
 
 
@@ -208,17 +208,11 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             if task_id not in subscription.tasks:
                 # ATTENTION: the implicit session passed as argument will be
                 # freed when this function returns. The async callback must NOT
-                # keep a reference on it as it will be invalid. Config and
-                # changes must be gathered and converted to python objects now.
-                try:
-                    config = session.get_data(
-                        root_xpath, include_implicit_defaults=True
-                    )
-                except SysrepoNotFoundError:
-                    config = {}
+                # keep a reference on it as it will be invalid. Changes must be
+                # gathered now.
                 changes = list(session.get_changes(root_xpath + "//."))
                 task = subscription.loop.create_task(
-                    callback(event_name, req_id, config, changes, private_data)
+                    callback(event_name, req_id, changes, private_data)
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, event_name)
@@ -239,12 +233,8 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             task.result()  # raise error if any
 
         else:
-            try:
-                config = session.get_data(root_xpath, include_implicit_defaults=True)
-            except SysrepoNotFoundError:
-                config = {}
             changes = list(session.get_changes(root_xpath + "//."))
-            callback(event_name, req_id, config, changes, private_data)
+            callback(event_name, req_id, changes, private_data)
 
         return lib.SR_ERR_OK
 
