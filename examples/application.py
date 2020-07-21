@@ -11,6 +11,7 @@ import argparse
 import logging
 import signal
 import sys
+import time
 
 import sysrepo
 
@@ -46,6 +47,12 @@ def main():
                 )
                 logging.info("subscribing to rpc calls: /sysrepo-example:poweroff")
                 sess.subscribe_rpc_call("/sysrepo-example:poweroff", poweroff)
+                logging.info(
+                    "subscribing to action calls: /sysrepo-example:conf/security/alarm/trigger"
+                )
+                sess.subscribe_rpc_call(
+                    "/sysrepo-example:conf/security/alarm/trigger", trigger_alarm
+                )
                 signal.sigwait({signal.SIGINT, signal.SIGTERM})
         return 0
     except sysrepo.SysrepoError as e:
@@ -97,14 +104,29 @@ def oper_data_cb(xpath, private_data):
 
 
 # ------------------------------------------------------------------------------
-def poweroff(rpc_input, event, private_data):
+def poweroff(xpath, input_params, event, private_data):
     print()
     print("========================")
-    print("RPC call: %s" % rpc_input)
-    out = {"poweroff": {"message": "bye bye"}}
+    print("RPC call: %s" % xpath)
+    print("params: %s" % input_params)
+    out = {"message": "bye bye"}
     print("returning %s" % out)
     print("---------------")
     print()
+    return out
+
+
+def trigger_alarm(xpath, input_params, event, private_data):
+    print()
+    print("========================")
+    print("Action call: %s" % xpath)
+    print("params: %s" % input_params)
+    seconds = input_params["duration"]
+    out = {"message": "triggered for %s seconds" % seconds}
+    print("returning %s" % out)
+    print("---------------")
+    print()
+    time.sleep(seconds)
     return out
 
 

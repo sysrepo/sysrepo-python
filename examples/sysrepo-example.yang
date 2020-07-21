@@ -1,4 +1,5 @@
 module sysrepo-example {
+  yang-version 1.1;
   namespace n;
   prefix p;
 
@@ -33,6 +34,29 @@ module sysrepo-example {
 
   container conf {
     uses data;
+
+    container security {
+      list alarm {
+        key name;
+        leaf name {
+          type string;
+        }
+        action trigger {
+          input {
+            leaf duration {
+              type uint16;
+              units "seconds";
+              default 1;
+            }
+          }
+          output {
+            leaf message {
+              type string;
+            }
+          }
+        }
+      }
+    }
   }
 
   container state {

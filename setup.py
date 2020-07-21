@@ -147,7 +147,7 @@ setuptools.setup(
         'cffi; platform_python_implementation != "PyPy"',
     ],
     install_requires=[
-        "libyang>=1.4.0",
+        "libyang>=1.5.0",
         'cffi; platform_python_implementation != "PyPy"',
     ],
     cffi_modules=["cffi/build.py:BUILDER"],

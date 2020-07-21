@@ -10,7 +10,7 @@ from libyang.data import DNode
 
 from _sysrepo import ffi, lib
 from .errors import SysrepoError, SysrepoNotFoundError, check_call
-from .util import c2str, is_async_func, xpath_split
+from .util import c2str, is_async_func
 
 
 LOG = logging.getLogger(__name__)
@@ -410,9 +410,15 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
         session = SysrepoSession(session, True)
         ly_ctx = session.get_ly_ctx()
-        xpath = c2str(xpath)
-        input_dict = DNode.new(ly_ctx, input_node).print_dict(
-            include_implicit_defaults=True
+        rpc_input = DNode.new(ly_ctx, input_node)
+        xpath = rpc_input.path()
+        # strip all parents, only preserve the input tree
+        input_dict = next(
+            iter(
+                rpc_input.print_dict(
+                    include_implicit_defaults=True, absolute=False
+                ).values()
+            )
         )
         subscription = ffi.from_handle(priv)
         callback = subscription.callback
@@ -424,7 +430,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
             if task_id not in subscription.tasks:
                 task = subscription.loop.create_task(
-                    callback(input_dict, event_name, private_data)
+                    callback(xpath, input_dict, event_name, private_data)
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, event_name)
@@ -441,7 +447,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
             output_dict = task.result()
 
         else:
-            output_dict = callback(input_dict, event_name, private_data)
+            output_dict = callback(xpath, input_dict, event_name, private_data)
 
         if event != lib.SR_EV_RPC:
             # May happen when there are multiple callback registered for the
@@ -452,15 +458,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
         if isinstance(output_dict, dict):
             # update output_node with contents of output_dict
-            # strip first level of output_dict with the rpc name
-            prefix, name, _ = next(xpath_split(xpath))
-            name_prefix = "%s:%s" % (prefix, name)
-            if name in output_dict:
-                output_dict = output_dict[name]
-            elif name_prefix in output_dict:
-                output_dict = output_dict[name_prefix]
-            dnode = DNode.new(ly_ctx, output_node)
-            dnode.merge_data_dict(
+            DNode.new(ly_ctx, output_node).merge_data_dict(
                 output_dict, rpcreply=True, strict=subscription.strict, validate=False
             )
         elif output_dict is not None:
