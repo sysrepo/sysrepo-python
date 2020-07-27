@@ -173,7 +173,8 @@ class SysrepoSession:
         done_only: bool = False,
         enabled: bool = False,
         private_data: Any = None,
-        asyncio_register: bool = False
+        asyncio_register: bool = False,
+        include_implicit_defaults: bool = True
     ) -> None:
         """
         Subscribe for changes made in the specified module.
@@ -207,12 +208,19 @@ class SysrepoSession:
         :arg asyncio_register:
             Add the created subscription event pipe into asyncio event loop
             monitored read file descriptors. Implies `no_thread=True`.
+        :arg include_implicit_defaults:
+            Include implicit default nodes in changes.
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
         _check_subscription_callback(callback, self.ModuleChangeCallbackType)
 
-        sub = Subscription(callback, private_data, asyncio_register=asyncio_register)
+        sub = Subscription(
+            callback,
+            private_data,
+            asyncio_register=asyncio_register,
+            include_implicit_defaults=include_implicit_defaults,
+        )
         sub_p = ffi.new("sr_subscription_ctx_t **")
 
         if asyncio_register:
@@ -384,7 +392,8 @@ class SysrepoSession:
         no_thread: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
-        strict: bool = False
+        strict: bool = False,
+        include_implicit_defaults: bool = True
     ) -> None:
         """
         Subscribe for the delivery of an RPC/action.
@@ -407,13 +416,19 @@ class SysrepoSession:
         :arg strict:
             Reject the whole data returned by callback if it contains elements without
             schema definition.
+        :arg include_implicit_defaults:
+            Include implicit defaults into input parameters passed to callbacks.
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
         _check_subscription_callback(callback, self.RpcCallbackType)
 
         sub = Subscription(
-            callback, private_data, asyncio_register=asyncio_register, strict=strict
+            callback,
+            private_data,
+            asyncio_register=asyncio_register,
+            strict=strict,
+            include_implicit_defaults=include_implicit_defaults,
         )
         sub_p = ffi.new("sr_subscription_ctx_t **")
 
@@ -438,7 +453,9 @@ class SysrepoSession:
     # end: subscription
 
     # begin: changes
-    def get_changes(self, xpath: str) -> Iterator[Change]:
+    def get_changes(
+        self, xpath: str, include_implicit_defaults: bool = True
+    ) -> Iterator[Change]:
         """
         Return an iterator that will yield all pending changes in the current session.
 
@@ -446,6 +463,8 @@ class SysrepoSession:
             Xpath selecting the requested changes. Be careful, you must select all the
             changes, not just subtrees! To get a full change subtree `//.` can be
             appended to the XPath.
+        :arg include_implicit_defaults:
+            Include implicit default nodes.
 
         :returns:
             An iterator that will yield `sysrepo.Change` objects.
@@ -481,6 +500,7 @@ class SysrepoSession:
                         prev_val=c2str(prev_val_p[0]),
                         prev_list=c2str(prev_list_p[0]),
                         prev_dflt=bool(prev_dflt_p[0]),
+                        include_implicit_defaults=include_implicit_defaults,
                     )
                 except Change.Skip:
                     pass

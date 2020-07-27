@@ -32,6 +32,7 @@ class Subscription:
         private_data: Any = None,
         asyncio_register: bool = False,
         strict: bool = False,
+        include_implicit_defaults: bool = True,
     ):
         """
         :arg callback:
@@ -45,6 +46,9 @@ class Subscription:
             If True, reject data with no schema definition from rpc output parameters
             and operational data callbacks. Otherwise, ignore unknown data and log a
             warning message.
+        :arg include_implicit_defaults:
+            If True, include implicit default nodes into Change objects passed to module
+            change callbacks and into input parameters passed to RPC/action callbacks.
         """
         if is_async_func(callback) and not asyncio_register:
             raise ValueError(
@@ -54,6 +58,7 @@ class Subscription:
         self.private_data = private_data
         self.asyncio_register = asyncio_register
         self.strict = strict
+        self.include_implicit_defaults = include_implicit_defaults
         if asyncio_register:
             self.loop = asyncio.get_event_loop()
         else:
@@ -210,7 +215,12 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
                 # freed when this function returns. The async callback must NOT
                 # keep a reference on it as it will be invalid. Changes must be
                 # gathered now.
-                changes = list(session.get_changes(root_xpath + "//."))
+                changes = list(
+                    session.get_changes(
+                        root_xpath + "//.",
+                        include_implicit_defaults=subscription.include_implicit_defaults,
+                    )
+                )
                 task = subscription.loop.create_task(
                     callback(event_name, req_id, changes, private_data)
                 )
@@ -233,7 +243,12 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             task.result()  # raise error if any
 
         else:
-            changes = list(session.get_changes(root_xpath + "//."))
+            changes = list(
+                session.get_changes(
+                    root_xpath + "//.",
+                    include_implicit_defaults=subscription.include_implicit_defaults,
+                )
+            )
             callback(event_name, req_id, changes, private_data)
 
         return lib.SR_ERR_OK
@@ -399,6 +414,10 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         from .session import SysrepoSession  # circular import
 
         session = SysrepoSession(session, True)
+        subscription = ffi.from_handle(priv)
+        callback = subscription.callback
+        private_data = subscription.private_data
+        event_name = EVENT_NAMES[event]
         ly_ctx = session.get_ly_ctx()
         rpc_input = DNode.new(ly_ctx, input_node)
         xpath = rpc_input.path()
@@ -406,14 +425,11 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         input_dict = next(
             iter(
                 rpc_input.print_dict(
-                    include_implicit_defaults=True, absolute=False
+                    include_implicit_defaults=subscription.include_implicit_defaults,
+                    absolute=False,
                 ).values()
             )
         )
-        subscription = ffi.from_handle(priv)
-        callback = subscription.callback
-        private_data = subscription.private_data
-        event_name = EVENT_NAMES[event]
 
         if is_async_func(callback):
             task_id = (event, req_id)
