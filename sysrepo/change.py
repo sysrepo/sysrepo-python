@@ -30,6 +30,7 @@ class Change:
         prev_val: str,
         prev_list: str,
         prev_dflt: bool,
+        include_implicit_defaults: bool = True,
     ) -> "Change":
         """
         Parse an operation code and values from libsysrepo.so and return a Change
@@ -61,18 +62,25 @@ class Change:
             the operation.
         :arg prev_dflt:
             Previous value default flag, depends on the operation.
+        :arg include_implicit_defaults:
+            Include implicit default values into the data dictionaries.
         """
         if operation == lib.SR_OP_CREATED:
-            if not node.should_print(include_implicit_defaults=True):
+            if not node.should_print(
+                include_implicit_defaults=include_implicit_defaults
+            ):
                 raise Change.Skip()
             return ChangeCreated(
                 node.path(),
-                _node_value(node),
+                _node_value(node, include_implicit_defaults),
                 after=_after_key(node, prev_val, prev_list),
             )
         if operation == lib.SR_OP_MODIFIED:
             return ChangeModified(
-                node.path(), _node_value(node), prev_val=prev_val, prev_dflt=prev_dflt,
+                node.path(),
+                _node_value(node, include_implicit_defaults),
+                prev_val=prev_val,
+                prev_dflt=prev_dflt,
             )
         if operation == lib.SR_OP_DELETED:
             return ChangeDeleted(node.path())
@@ -196,13 +204,15 @@ def update_config_cache(conf: Dict, changes: List[Change]) -> None:
 
 
 # -------------------------------------------------------------------------------------
-def _node_value(node: libyang.DNode) -> Any:
+def _node_value(node: libyang.DNode, include_implicit_defaults: bool = True) -> Any:
     """
     Extract a python value from a libyang.DNode.
     """
     if isinstance(node, (libyang.DLeaf, libyang.DLeafList)):
         return node.value()
-    dic = node.print_dict(absolute=False, include_implicit_defaults=True)
+    dic = node.print_dict(
+        absolute=False, include_implicit_defaults=include_implicit_defaults
+    )
     if not dic:
         return dic
     dic = next(iter(dic.values()))  # trim first level of dict with only key name
