@@ -55,7 +55,7 @@ class SessionTest(unittest.TestCase):
             self.assertIn("module-set", data)
             data = data["module-set"]
             self.assertIsInstance(data, list)
-            data = data[0]
+            data = next(iter(data))
             self.assertIn("module", data)
             data = data["module"]
             self.assertIsInstance(data, list)
