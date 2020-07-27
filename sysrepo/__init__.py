@@ -24,7 +24,7 @@ from .errors import (
     SysrepoUnsupportedError,
     SysrepoValidationFailedError,
 )
-from .util import c2str, xpath_split
+from .util import c2str
 from .value import (
     AnyData,
     AnyXML,
@@ -75,7 +75,6 @@ __all__ = [
     "SysrepoUnauthorizedError",
     "SysrepoUnsupportedError",
     "SysrepoValidationFailedError",
-    "xpath_split",
     "AnyData",
     "AnyXML",
     "Binary",
