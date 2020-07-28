@@ -6,3 +6,6 @@ __pycache__/
 /*.egg-info/
 /.tox/
 /.eggs/
+/.coverage
+/htmlcov
+/coverage.xml
