@@ -13,6 +13,8 @@ import signal
 import sys
 import time
 
+import libyang
+
 import sysrepo
 
 
@@ -115,13 +117,16 @@ def poweroff(xpath, input_params, event, private_data):
     return out
 
 
+# ------------------------------------------------------------------------------
 def trigger_alarm(xpath, input_params, event, private_data):
     print()
     print("========================")
     print("Action call: %s" % xpath)
     print("params: %s" % input_params)
+    _, _, keys = list(libyang.xpath_split(xpath))[2]
+    _, alarm_name = keys[0]
     seconds = input_params["duration"]
-    out = {"message": "triggered for %s seconds" % seconds}
+    out = {"message": "%s alarm triggered for %s seconds" % (alarm_name, seconds)}
     print("returning %s" % out)
     print("---------------")
     print()

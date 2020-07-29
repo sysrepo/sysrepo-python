@@ -132,9 +132,9 @@ Supported Features
    async_ callbacks, ``sr_get_changes_iter()``).
 -  Operational data subscriptions (``sr_oper_get_items_subscribe()`` also with
    async_ callbacks).
--  RPC call subscriptions (``sr_rpc_subscribe_tree()`` also with async_
+-  RPC/action call subscriptions (``sr_rpc_subscribe_tree()`` also with async_
    callbacks).
--  RPC calling (``sr_rpc_send_tree()``)
+-  RPC/action calling (``sr_rpc_send_tree()``)
 -  Datastore edition (``sr_set_item_str()``, ``sr_delete_item()``,
    ``sr_edit_batch()``, ``sr_validate()``, ``sr_apply_changes()``,
    ``sr_discard_changes()``, ``sr_replace_config()``)
@@ -149,7 +149,6 @@ Not Yet Supported Features
 All other features are not yet supported by sysrepo-python. The most notable
 are:
 
--  Action support (via ``sr_rpc_*``)
 -  Notification support (``sr_event_notif_*``)
 -  Module locking (``sr_*lock*``)
 -  Module management (``sr_*_module_*``)
