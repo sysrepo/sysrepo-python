@@ -14,6 +14,8 @@ import logging
 import signal
 import sys
 
+import libyang
+
 import sysrepo
 
 
@@ -59,6 +61,14 @@ def main():
                 logging.info("subscribing to rpc calls: /sysrepo-example:poweroff")
                 sess.subscribe_rpc_call(
                     "/sysrepo-example:poweroff", poweroff, asyncio_register=True
+                )
+                logging.info(
+                    "subscribing to action calls: /sysrepo-example:conf/security/alarm/trigger"
+                )
+                sess.subscribe_rpc_call(
+                    "/sysrepo-example:conf/security/alarm/trigger",
+                    trigger_alarm,
+                    asyncio_register=True,
                 )
                 loop.run_until_complete(stop_event.wait())
         return 0
@@ -122,6 +132,23 @@ async def poweroff(xpath, input_params, event, private_data):
     print("---------------")
     print()
     await asyncio.sleep(0)
+    return out
+
+
+# ------------------------------------------------------------------------------
+async def trigger_alarm(xpath, input_params, event, private_data):
+    print()
+    print("========================")
+    print("Action call: %s" % xpath)
+    print("params: %s" % input_params)
+    _, _, keys = list(libyang.xpath_split(xpath))[2]
+    _, alarm_name = keys[0]
+    seconds = input_params["duration"]
+    out = {"message": "%s alarm triggered for %s seconds" % (alarm_name, seconds)}
+    print("returning %s" % out)
+    print("---------------")
+    print()
+    await asyncio.sleep(seconds)
     return out
 
 
