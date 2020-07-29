@@ -942,8 +942,8 @@ class SysrepoSession:
 
     def rpc_send(
         self,
+        xpath: str,
         input_dict: Dict,
-        module_name: str,
         timeout_ms: int = 0,
         strict: bool = False,
         strip_prefixes: bool = True,
@@ -977,22 +977,26 @@ class SysrepoSession:
             A python dictionary with the RPC/action output tree.
         """
         ctx = self.get_ly_ctx()
+        rpc = {}
+        libyang.xpath_set(rpc, xpath, input_dict)
+        module_name, _, _ = next(libyang.xpath_split(xpath))
         module = ctx.get_module(module_name)
-        in_dnode = module.parse_data_dict(
-            input_dict, rpc=True, strict=strict, validate=False
-        )
+        in_dnode = module.parse_data_dict(rpc, rpc=True, strict=strict, validate=False)
         try:
             out_dnode = self.rpc_send_ly(in_dnode, timeout_ms=timeout_ms)
         finally:
             in_dnode.free()
         try:
-            return out_dnode.print_dict(
+            out_dict = out_dnode.print_dict(
                 strip_prefixes=strip_prefixes,
-                absolute=True,
+                absolute=False,
+                with_siblings=False,
                 include_implicit_defaults=include_implicit_defaults,
                 trim_default_values=trim_default_values,
                 keep_empty_containers=keep_empty_containers,
             )
+            # strip first item with only RPC/action name
+            return next(iter(out_dict.values()))
         finally:
             out_dnode.free()
 

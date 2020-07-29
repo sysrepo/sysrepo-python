@@ -1,7 +1,6 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
-import copy
 import os
 import unittest
 
@@ -49,25 +48,25 @@ class RpcSubscriptionTest(unittest.TestCase):
             sess.subscribe_rpc_call(rpc_xpath, rpc_cb, private_data=priv, strict=True)
 
             with self.conn.start_session() as rpc_sess:
-                rpc = {"poweroff": {"behaviour": "failure"}}
+                input_params = {"behaviour": "failure"}
                 with self.assertRaises(sysrepo.SysrepoCallbackFailedError):
-                    rpc_sess.rpc_send(rpc, "sysrepo-example")
+                    rpc_sess.rpc_send(rpc_xpath, input_params)
                 self.assertEqual(len(calls), 1)
-                self.assertEqual(calls[0], (rpc_xpath, rpc["poweroff"], "rpc", priv))
+                self.assertEqual(calls[0], (rpc_xpath, input_params, "rpc", priv))
                 del calls[:]
 
-                rpc = {"poweroff": {"behaviour": "bad-output"}}
+                input_params = {"behaviour": "bad-output"}
                 with self.assertRaises(sysrepo.SysrepoCallbackFailedError):
-                    rpc_sess.rpc_send(rpc, "sysrepo-example")
+                    rpc_sess.rpc_send(rpc_xpath, input_params)
                 self.assertEqual(len(calls), 1)
-                self.assertEqual(calls[0], (rpc_xpath, rpc["poweroff"], "rpc", priv))
+                self.assertEqual(calls[0], (rpc_xpath, input_params, "rpc", priv))
                 del calls[:]
 
-                rpc = {"poweroff": {"behaviour": "success"}}
-                output = rpc_sess.rpc_send(rpc, "sysrepo-example")
-                self.assertEqual(output, {"poweroff": {"message": "bye bye"}})
+                input_params = {"behaviour": "success"}
+                output = rpc_sess.rpc_send(rpc_xpath, input_params)
+                self.assertEqual(output, {"message": "bye bye"})
                 self.assertEqual(len(calls), 1)
-                self.assertEqual(calls[0], (rpc_xpath, rpc["poweroff"], "rpc", priv))
+                self.assertEqual(calls[0], (rpc_xpath, input_params, "rpc", priv))
                 del calls[:]
 
     def test_action_sub(self):
@@ -77,8 +76,10 @@ class RpcSubscriptionTest(unittest.TestCase):
 
         def action_cb(xpath, input_params, event, private_data):
             calls.append((xpath, input_params, event, private_data))
+            _, _, keys = list(libyang.xpath_split(xpath))[2]
+            _, name = keys[0]
             duration = input_params["duration"]
-            return {"message": "triggered for %r seconds" % (duration,)}
+            return {"message": "%s alarm triggered for %s seconds" % (name, duration,)}
 
         def module_change_cb(event, req_id, changes, private_data):
             # unused
@@ -107,30 +108,21 @@ class RpcSubscriptionTest(unittest.TestCase):
             sess.subscribe_module_change("sysrepo-example", None, module_change_cb)
 
             with self.conn.start_session() as rpc_sess:
-                action = {
-                    "conf": {
-                        "security": {
-                            "alarm": [{"name": "lab2", "trigger": {"duration": 30}}],
-                        },
-                    },
-                }
-                output = rpc_sess.rpc_send(action, "sysrepo-example")
-                call_xpath = "/sysrepo-example:conf/security/alarm[name='lab2']/trigger"
-                expected_output = copy.deepcopy(action)
-                libyang.xpath_set(
-                    expected_output, call_xpath, {"message": "triggered for 30 seconds"}
+                xpath = "/sysrepo-example:conf/security/alarm[name='lab2']/trigger"
+                output = rpc_sess.rpc_send(xpath, {"duration": 30})
+                self.assertEqual(
+                    output, {"message": "lab2 alarm triggered for 30 seconds"}
                 )
-                self.assertEqual(output, expected_output)
                 self.assertEqual(len(calls), 1)
-                self.assertEqual(calls[0], (call_xpath, {"duration": 30}, "rpc", priv))
+                self.assertEqual(calls[0], (xpath, {"duration": 30}, "rpc", priv))
                 del calls[:]
 
                 # no value for duration, check default value is set
-                libyang.xpath_set(action, call_xpath, {})
-                output = rpc_sess.rpc_send(action, "sysrepo-example")
-                libyang.xpath_set(
-                    expected_output, call_xpath, {"message": "triggered for 1 seconds"}
+                xpath = "/sysrepo-example:conf/security/alarm[name='office1']/trigger"
+                output = rpc_sess.rpc_send(xpath, {})
+                self.assertEqual(
+                    output, {"message": "office1 alarm triggered for 1 seconds"}
                 )
                 self.assertEqual(len(calls), 1)
-                self.assertEqual(calls[0], (call_xpath, {"duration": 1}, "rpc", priv))
+                self.assertEqual(calls[0], (xpath, {"duration": 1}, "rpc", priv))
                 del calls[:]
