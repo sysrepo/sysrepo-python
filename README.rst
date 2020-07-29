@@ -97,7 +97,7 @@ RPC Call
 
    with sysrepo.SysrepoConnection() as conn:
        with conn.start_session() as sess:
-           out = sess.rpc_send({"my-rpc": {"input-param": 42}}, "my-module")
+           out = sess.rpc_send("/my-module:my-rpc", {"input-param": 42})
 
 Subscription
 ------------
