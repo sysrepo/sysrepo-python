@@ -36,7 +36,7 @@ class Value:
                 new_args.append(args[i])
                 i += 1
             except IndexError:
-                raise TypeError("Unspecified value")
+                raise TypeError("Unspecified value") from None
 
         self = super().__new__(*new_args)
         try:
