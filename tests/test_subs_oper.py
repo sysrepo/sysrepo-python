@@ -48,8 +48,6 @@ class OperSubscriptionTest(unittest.TestCase):
         )
 
         with self.conn.start_session("operational") as op_sess:
-            state = {}
-            self.assertEqual(op_sess.get_data("/sysrepo-example:state"), state)
             state = {
                 "state": {
                     "system": {"hostname": "foo"},
