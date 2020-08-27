@@ -86,7 +86,8 @@ class Change:
             return ChangeDeleted(node.path())
         if operation == lib.SR_OP_MOVED:
             return ChangeMoved(
-                node.path(), after=_after_key(node, prev_val, prev_list),
+                node.path(),
+                after=_after_key(node, prev_val, prev_list),
             )
         raise ValueError("unknown change operation: %s" % operation)
 

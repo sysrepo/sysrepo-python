@@ -79,7 +79,13 @@ class RpcSubscriptionTest(unittest.TestCase):
             _, _, keys = list(libyang.xpath_split(xpath))[2]
             _, name = keys[0]
             duration = input_params["duration"]
-            return {"message": "%s alarm triggered for %s seconds" % (name, duration,)}
+            return {
+                "message": "%s alarm triggered for %s seconds"
+                % (
+                    name,
+                    duration,
+                )
+            }
 
         def module_change_cb(event, req_id, changes, private_data):
             # unused
