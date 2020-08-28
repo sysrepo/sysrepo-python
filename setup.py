@@ -96,6 +96,9 @@ def get_version():
     except IOError:
         pass
 
+    if "SYSREPO_PYTHON_FORCE_VERSION" in os.environ:
+        return os.environ["SYSREPO_PYTHON_FORCE_VERSION"]
+
     try:
         return get_version_from_archive_id()
     except ValueError:
