@@ -147,7 +147,7 @@ setuptools.setup(
     packages=["sysrepo"],
     python_requires=">=3.5",
     setup_requires=[
-        "setuptools>=40.6.0",
+        "setuptools",
         'cffi; platform_python_implementation != "PyPy"',
     ],
     install_requires=[
