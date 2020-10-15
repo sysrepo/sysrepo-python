@@ -1,6 +1,7 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import logging
 import os
 import unittest
 
@@ -10,6 +11,8 @@ import sysrepo
 YANG_FILE = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "examples/sysrepo-example.yang"
 )
+sysrepo.configure_logging(stderr_level=logging.ERROR)
+
 
 # ------------------------------------------------------------------------------
 class ModuleChangeSubscriptionTest(unittest.TestCase):

@@ -35,6 +35,7 @@ def main():
     else:
         level = logging.ERROR
     logging.basicConfig(level=level, format="[%(levelname)s] application: %(message)s")
+    sysrepo.configure_logging(py_logging=True)
 
     try:
         with sysrepo.SysrepoConnection() as conn:

@@ -36,6 +36,8 @@ typedef enum {
 
 extern "Python" void srpy_log_cb(sr_log_level_t, const char *);
 void sr_log_set_cb(void (*)(sr_log_level_t, const char *));
+void sr_log_stderr(sr_log_level_t);
+void sr_log_syslog(const char *app_name, sr_log_level_t);
 
 typedef struct sr_conn_ctx_s sr_conn_ctx_t;
 typedef struct sr_session_ctx_s sr_session_ctx_t;

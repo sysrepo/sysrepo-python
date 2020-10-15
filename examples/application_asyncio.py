@@ -36,6 +36,7 @@ def main():
     else:
         level = logging.ERROR
     logging.basicConfig(level=level, format="[%(levelname)s] application: %(message)s")
+    sysrepo.configure_logging(py_logging=True)
 
     loop = asyncio.get_event_loop()
     stop_event = asyncio.Event()

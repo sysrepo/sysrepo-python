@@ -1,9 +1,6 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
-import logging
-
-from _sysrepo import ffi, lib
 from .change import (
     Change,
     ChangeCreated,
@@ -31,7 +28,7 @@ from .errors import (
     SysrepoUnsupportedError,
     SysrepoValidationFailedError,
 )
-from .util import c2str
+from .util import configure_logging
 from .value import (
     AnyData,
     AnyXML,
@@ -66,7 +63,6 @@ __all__ = [
     "ChangeDeleted",
     "ChangeModified",
     "ChangeMoved",
-    "update_config_cache",
     "SysrepoError",
     "SysrepoCallbackFailedError",
     "SysrepoCallbackShelveError",
@@ -106,19 +102,6 @@ __all__ = [
     "UInt64",
     "UInt8",
     "Value",
+    "update_config_cache",
+    "configure_logging",
 ]
-
-LOG = logging.getLogger(__name__)
-LOG.addHandler(logging.NullHandler())
-lib.sr_log_set_cb(lib.srpy_log_cb)
-
-
-@ffi.def_extern(name="srpy_log_cb")
-def log_callback(level, msg):
-    py_level = {
-        lib.SR_LL_ERR: logging.ERROR,
-        lib.SR_LL_WRN: logging.WARNING,
-        lib.SR_LL_INF: logging.INFO,
-        lib.SR_LL_DBG: logging.DEBUG,
-    }.get(level, logging.NOTSET)
-    LOG.log(py_level, "%s", c2str(msg))

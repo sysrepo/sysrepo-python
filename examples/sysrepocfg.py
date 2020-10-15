@@ -86,6 +86,7 @@ def main():
     logging.basicConfig(
         level=level, format="[%(levelname)s] sysrepocfg.py: %(message)s"
     )
+    sysrepo.configure_logging(py_logging=True)
 
     try:
         with sysrepo.SysrepoConnection() as conn:
