@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import logging
+import signal
 from typing import Optional, Sequence
 
 import libyang
@@ -60,8 +61,12 @@ class SysrepoConnection:
         if err_on_sched_fail:
             flags |= lib.SR_CONN_ERR_ON_SCHED_FAIL
         conn_p = ffi.new("sr_conn_ctx_t **")
-        check_call(lib.sr_connect, flags, conn_p)
-        self.cdata = conn_p[0]
+        sigmask = signal.pthread_sigmask(signal.SIG_BLOCK, range(1, signal.NSIG))
+        try:
+            check_call(lib.sr_connect, flags, conn_p)
+            self.cdata = ffi.gc(conn_p[0], lib.sr_disconnect)
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, sigmask)
 
     def __enter__(self):
         return self
@@ -80,9 +85,9 @@ class SysrepoConnection:
         Connection and all its associated sessions and subscriptions can no longer be
         used even on error.
         """
-        try:
-            check_call(lib.sr_disconnect, self.cdata)
-        finally:
+        if self.cdata is not None:
+            if hasattr(ffi, "release"):
+                ffi.release(self.cdata)  # causes sr_disconnect to be called
             self.cdata = None
 
     def start_session(self, datastore: str = "running") -> SysrepoSession:
