@@ -61,7 +61,9 @@ class SysrepoConnection:
         if err_on_sched_fail:
             flags |= lib.SR_CONN_ERR_ON_SCHED_FAIL
         conn_p = ffi.new("sr_conn_ctx_t **")
-        sigmask = signal.pthread_sigmask(signal.SIG_BLOCK, range(1, signal.NSIG))
+        # valid_signals() is only available since python 3.8
+        valid_signals = getattr(signal, "valid_signals", lambda: range(1, signal.NSIG))
+        sigmask = signal.pthread_sigmask(signal.SIG_BLOCK, valid_signals())
         try:
             check_call(lib.sr_connect, flags, conn_p)
             self.cdata = ffi.gc(conn_p[0], lib.sr_disconnect)
