@@ -11,6 +11,7 @@ from libyang.data import DNode
 from _sysrepo import ffi, lib
 from .errors import SysrepoError, check_call
 from .util import c2str, is_async_func
+from .value import Value
 
 
 LOG = logging.getLogger(__name__)
@@ -160,6 +161,12 @@ EVENT_NAMES = {
     lib.SR_EV_RPC: "rpc",
 }
 
+NOTIF_NAMES = {
+    lib.SR_EV_NOTIF_REALTIME: "realtime",
+    lib.SR_EV_NOTIF_REPLAY: "replay",
+    lib.SR_EV_NOTIF_REPLAY_COMPLETE: "replay_complete",
+    lib.SR_EV_NOTIF_STOP: "stop",
+}
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_module_change_cb")
@@ -487,3 +494,79 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
             session.set_error(xpath, str(e))
         return lib.SR_ERR_CALLBACK_FAILED
+
+
+@ffi.def_extern(name="srpy_event_notif_cb")
+def event_notif_callback(session, notif, xpath, values, values_cnt, timestamp, priv):
+    try:
+        # convert C arguments to python objects.
+        from .session import SysrepoSession  # circular import
+
+        session = SysrepoSession(session, True)
+        xpath = c2str(xpath)
+        subscription = ffi.from_handle(priv)
+        callback = subscription.callback
+        private_data = subscription.private_data
+        notif_name = NOTIF_NAMES[notif]
+
+        array = [Value.parse(values[i]) for i in range(values_cnt)]
+        callback(notif_name, xpath, array, timestamp, private_data)
+
+    except SysrepoError as e:
+        if (
+            event in (lib.SR_EV_UPDATE, lib.SR_EV_CHANGE)
+            and e.msg
+            and isinstance(session, SysrepoSession)
+            and isinstance(xpath, str)
+        ):
+            session.set_error(xpath, e.msg)
+
+    except BaseException as e:
+        # ATTENTION: catch all exceptions!
+        # including KeyboardInterrupt, CancelledError, etc.
+        # We are in a C callback, we cannot let any error pass
+        LOG.exception("%r callback failed", locals().get("callback", priv))
+        if (
+            event in (lib.SR_EV_UPDATE, lib.SR_EV_CHANGE)
+            and isinstance(session, SysrepoSession)
+            and isinstance(xpath, str)
+        ):
+            session.set_error(xpath, str(e))
+
+
+@ffi.def_extern(name="srpy_event_notif_tree_cb")
+def event_notif_tree_callback(session, notif, dnode, timestamp, priv):
+    try:
+        # convert C arguments to python objects.
+        from .session import SysrepoSession  # circular import
+
+        session = SysrepoSession(session, True)
+        subscription = ffi.from_handle(priv)
+        callback = subscription.callback
+        private_data = subscription.private_data
+        notif_name = NOTIF_NAMES[notif]
+
+        ly_ctx = session.get_ly_ctx()
+        value = DNode.new(ly_ctx, dnode)
+        callback(notif_name, value, timestamp, private_data)
+
+    except SysrepoError as e:
+        if (
+            event in (lib.SR_EV_UPDATE, lib.SR_EV_CHANGE)
+            and e.msg
+            and isinstance(session, SysrepoSession)
+            and isinstance(xpath, str)
+        ):
+            session.set_error(xpath, e.msg)
+
+    except BaseException as e:
+        # ATTENTION: catch all exceptions!
+        # including KeyboardInterrupt, CancelledError, etc.
+        # We are in a C callback, we cannot let any error pass
+        LOG.exception("%r callback failed", locals().get("callback", priv))
+        if (
+            event in (lib.SR_EV_UPDATE, lib.SR_EV_CHANGE)
+            and isinstance(session, SysrepoSession)
+            and isinstance(xpath, str)
+        ):
+            session.set_error(xpath, str(e))

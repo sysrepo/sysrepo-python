@@ -450,6 +450,104 @@ class SysrepoSession:
 
         self.subscriptions.append(sub)
 
+    NotificationCallbackType = Callable[[str, str, Any, int, Any], Optional[Dict]]
+
+    def subscribe_notification(
+        self,
+        module: str,
+        xpath: str,
+        start_time: int,
+        stop_time: int,
+        callback: NotificationCallbackType,
+        *,
+        no_thread: bool = False,
+        passive: bool = False,
+        done_only: bool = False,
+        enabled: bool = False,
+        private_data: Any = None,
+        include_implicit_defaults: bool = True
+    ) -> None:
+
+        if self.is_implicit:
+            raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
+        _check_subscription_callback(callback, self.NotificationCallbackType)
+
+        sub = Subscription(
+            callback,
+            private_data,
+        )
+
+        sub_p = ffi.new("sr_subscription_ctx_t **")
+
+        flags = _subscribe_flags(
+            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
+        )
+
+        check_call(
+            lib.sr_event_notif_subscribe,
+            self.cdata,
+            str2c(module),
+            str2c(xpath),
+            start_time,
+            stop_time,
+            lib.srpy_event_notif_cb,
+            sub.handle,
+            flags,
+            sub_p,
+        )
+        sub.init(sub_p[0])
+
+        self.subscriptions.append(sub)
+
+    NotificationTreeCallbackType = Callable[[str, Any, int, Any], Optional[Dict]]
+
+    def subscribe_notification_tree(
+        self,
+        module: str,
+        xpath: str,
+        start_time: int,
+        stop_time: int,
+        callback: NotificationCallbackType,
+        *,
+        no_thread: bool = False,
+        passive: bool = False,
+        done_only: bool = False,
+        enabled: bool = False,
+        private_data: Any = None,
+        include_implicit_defaults: bool = True
+    ) -> None:
+
+        if self.is_implicit:
+            raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
+        _check_subscription_callback(callback, self.NotificationTreeCallbackType)
+
+        sub = Subscription(
+            callback,
+            private_data,
+        )
+
+        sub_p = ffi.new("sr_subscription_ctx_t **")
+
+        flags = _subscribe_flags(
+            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
+        )
+
+        check_call(
+            lib.sr_event_notif_subscribe_tree,
+            self.cdata,
+            str2c(module),
+            str2c(xpath),
+            start_time,
+            stop_time,
+            lib.srpy_event_notif_tree_cb,
+            sub.handle,
+            flags,
+            sub_p,
+        )
+        sub.init(sub_p[0])
+
+        self.subscriptions.append(sub)
+
     # end: subscription
 
     # begin: changes
@@ -999,6 +1097,19 @@ class SysrepoSession:
             return next(iter(out_dict.values()))
         finally:
             out_dnode.free()
+
+    def notification_send_ly(self, notif: libyang.DNode) -> None:
+        """
+        Send a notification
+
+        :raises SysrepoError:
+            If the notification callback failed.
+        """
+        if not isinstance(notif, libyang.DNode):
+            raise TypeError("notif must be a libyang.DNode")
+        # libyang and sysrepo bindings are different, casting is required
+        in_dnode = ffi.cast("struct lyd_node *", notif.cdata)
+        check_call(lib.sr_event_notif_send_tree, self.cdata, in_dnode)
 
 
 # -------------------------------------------------------------------------------------
