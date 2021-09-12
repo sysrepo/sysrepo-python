@@ -7,7 +7,7 @@ on: [push, pull_request]
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -23,7 +23,7 @@ jobs:
       - run: python -m tox -e lint
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         include:
@@ -38,9 +38,7 @@ jobs:
           - python: pypy3
             toxenv: pypy3
           - python: 3.x
-            toxenv: py3-master
-          - python: 3.x
-            toxenv: py3-devel
+            toxenv: py3-libyang1
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -56,7 +54,7 @@ jobs:
       - run: python -m tox -e ${{ matrix.toxenv }}
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -75,7 +73,7 @@ jobs:
   deploy:
     needs: [lint, test]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2

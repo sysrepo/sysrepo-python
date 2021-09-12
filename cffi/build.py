@@ -11,7 +11,7 @@ import cffi
 HERE = os.path.dirname(__file__)
 
 BUILDER = cffi.FFI()
-with open(os.path.join(HERE, "cdefs.h")) as f:
+with open(os.path.join(HERE, "cdefs.h"), encoding="utf-8") as f:
     BUILDER.cdef(f.read())
 
 
