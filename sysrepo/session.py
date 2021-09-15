@@ -450,6 +450,107 @@ class SysrepoSession:
 
         self.subscriptions.append(sub)
 
+    NotificationCallbackType = Callable[[str, str, Dict, int, Any], None]
+    """
+    Callback to be called when a notification is received.
+
+    :arg xpath:
+        The full xpath to the received notification.
+    :arg notification_type:
+        Type of the notification event. Can be one of: "realtime", "replay",
+        "replay_complete", "stop", "suspended", "resumed".
+    :arg notification:
+        The notification as a python dictionary. For example, with a YANG notification
+        defined like this::
+
+            notification some-notification {
+              leaf param1 {
+                type uint32;
+              }
+              leaf param2 {
+                type string;
+              }
+            }
+
+        The notification dict may look like this::
+
+            {'param1': 42, 'param2': 'foobar'}
+
+    :arg timestamp:
+        Timestamp of the notification as an unsigned 32-bits integer.
+    :arg private_data:
+        Private context opaque to sysrepo used when subscribing.
+    """
+
+    def subscribe_notification(
+        self,
+        module: str,
+        xpath: str,
+        callback: NotificationCallbackType,
+        *,
+        start_time: int = 0,
+        stop_time: int = 0,
+        no_thread: bool = False,
+        asyncio_register: bool = False,
+        private_data: Any = None
+    ) -> None:
+        """
+        Subscribe for the delivery of a notification.
+
+        :arg module:
+            Name of the module whose notifications to subscribe to.
+        :arg xpath:
+            XPath identifying the notification.
+        :arg callback:
+            Callback to be called when the notification is received.
+        :arg start_time:
+            Optional start time of the subscription. Used for replaying stored
+            notifications.
+        :arg stop_time:
+            Optional stop time ending the notification subscription.
+        :arg no_thread:
+            There will be no thread created for handling this subscription meaning no
+            event will be processed! Default to True if asyncio_register is True.
+        :arg asyncio_register:
+            Add the created subscription event pipe into asyncio event loop monitored
+            read file descriptors. Implies no_thread=True.
+        :arg private_data:
+            Private context passed to the callback function, opaque to sysrepo.
+        """
+
+        if self.is_implicit:
+            raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
+        _check_subscription_callback(callback, self.NotificationCallbackType)
+
+        sub = Subscription(
+            callback,
+            private_data,
+            asyncio_register=asyncio_register,
+        )
+
+        sub_p = ffi.new("sr_subscription_ctx_t **")
+
+        if asyncio_register:
+            no_thread = True  # we manage our own event loop
+
+        flags = _subscribe_flags(no_thread=no_thread)
+
+        check_call(
+            lib.sr_event_notif_subscribe_tree,
+            self.cdata,
+            str2c(module),
+            str2c(xpath),
+            start_time,
+            stop_time,
+            lib.srpy_event_notif_tree_cb,
+            sub.handle,
+            flags,
+            sub_p,
+        )
+        sub.init(sub_p[0])
+
+        self.subscriptions.append(sub)
+
     # end: subscription
 
     # begin: changes
@@ -999,6 +1100,54 @@ class SysrepoSession:
             return next(iter(out_dict.values()))
         finally:
             out_dnode.free()
+
+    def notification_send_ly(self, notification: libyang.DNode) -> None:
+        """
+        Send a notification
+
+        :arg notification:
+            The notification tree. It is *NOT* spent and must be freed by the
+            caller.
+
+        :raises SysrepoError:
+            If the notification callback failed.
+        """
+        if not isinstance(notification, libyang.DNode):
+            raise TypeError("notification must be a libyang.DNode")
+        # libyang and sysrepo bindings are different, casting is required
+        in_dnode = ffi.cast("struct lyd_node *", notification.cdata)
+        check_call(lib.sr_event_notif_send_tree, self.cdata, in_dnode)
+
+    def notification_send(
+        self, xpath: str, notification: Dict, strict: bool = False
+    ) -> None:
+        """
+        Same as notification_send_ly() but takes a python dictionary as a notification.
+
+        :arg xpath:
+            The xpath corresponding to the notification
+        :arg notification:
+            The notification to send represented as a dictionary
+        :arg strict:
+            If True, reject notification if it contains elements without any schema
+            definition.
+
+        :raises SysrepoError:
+            If the notification callback failed.
+        """
+
+        ctx = self.get_ly_ctx()
+        full_notification = {}
+        libyang.xpath_set(full_notification, xpath, notification)
+        module_name, _, _ = next(libyang.xpath_split(xpath))
+        module = ctx.get_module(module_name)
+        dnode = module.parse_data_dict(
+            full_notification, notification=True, strict=strict, validate=False
+        )
+        try:
+            self.notification_send_ly(dnode)
+        finally:
+            dnode.free()
 
 
 # -------------------------------------------------------------------------------------

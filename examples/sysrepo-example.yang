@@ -74,6 +74,11 @@ module sysrepo-example {
         }
       }
     }
+    notification state-changed {
+      leaf message {
+        type string;
+      }
+    }
   }
 
   rpc poweroff {
@@ -90,6 +95,15 @@ module sysrepo-example {
       leaf message {
         type string;
       }
+    }
+  }
+
+  notification alarm-triggered {
+    leaf description {
+      type string;
+    }
+    leaf severity {
+      type uint32;
     }
   }
 }

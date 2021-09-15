@@ -160,6 +160,14 @@ EVENT_NAMES = {
     lib.SR_EV_RPC: "rpc",
 }
 
+NOTIF_TYPES = {
+    lib.SR_EV_NOTIF_REALTIME: "realtime",
+    lib.SR_EV_NOTIF_REPLAY: "replay",
+    lib.SR_EV_NOTIF_REPLAY_COMPLETE: "replay_complete",
+    lib.SR_EV_NOTIF_STOP: "stop",
+    lib.SR_EV_NOTIF_SUSPENDED: "suspended",
+    lib.SR_EV_NOTIF_RESUMED: "resumed",
+}
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_module_change_cb")
@@ -487,3 +495,60 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
             session.set_error(xpath, str(e))
         return lib.SR_ERR_CALLBACK_FAILED
+
+
+# ------------------------------------------------------------------------------
+@ffi.def_extern(name="srpy_event_notif_tree_cb")
+def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
+    """
+    Callback to be called when a notification is received.
+
+    :arg "sr_session_ctx_t *" session:
+        Implicit session (do not stop).
+    :arg "sr_ev_notif_type_t" notif_type:
+        Type of the notification event that has occurred.
+    :arg "const struct lyd_node *" notif:
+        Data tree of input parameters.
+    :arg "uint32_t" timestamp:
+        Timestamp of the notification.
+    :arg "void *" priv:
+        Private context opaque to sysrepo. Contains a CFFI handle to the Subscription
+        python object.
+
+    :returns:
+        User error code (sr_error_t).
+    :raises:
+        IMPORTANT: This function *CANNOT* raise any exception. The C callstack does not
+        handle that well and when it happens the outcome is undetermined. Make sure to
+        catch all errors and log them so they are not lost.
+    """
+    try:
+        # convert C arguments to python objects.
+        from .session import SysrepoSession  # circular import
+
+        session = SysrepoSession(session, True)
+        subscription = ffi.from_handle(priv)
+        callback = subscription.callback
+        private_data = subscription.private_data
+        notif_type = NOTIF_TYPES[notif_type]
+
+        ly_ctx = session.get_ly_ctx()
+        notif_dnode = DNode.new(ly_ctx, notif)
+        xpath = notif_dnode.path()
+        notif_dict = next(
+            iter(
+                notif_dnode.print_dict(
+                    include_implicit_defaults=subscription.include_implicit_defaults,
+                    absolute=False,
+                ).values()
+            )
+        )
+        callback(xpath, notif_type, notif_dict, timestamp, private_data)
+
+    except BaseException as e:
+        # ATTENTION: catch all exceptions!
+        # including KeyboardInterrupt, CancelledError, etc.
+        # We are in a C callback, we cannot let any error pass
+        LOG.exception("%r callback failed", locals().get("callback", priv))
+        if isinstance(session, SysrepoSession) and isinstance(xpath, str):
+            session.set_error(xpath, str(e))
