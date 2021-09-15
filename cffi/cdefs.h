@@ -244,3 +244,23 @@ int sr_oper_get_items_subscribe(
 	sr_session_ctx_t *, const char *module, const char *xpath,
 	int (*)(sr_session_ctx_t *, const char *, const char *, const char *, uint32_t, struct lyd_node **, void *),
 	void *priv, sr_subscr_options_t, sr_subscription_ctx_t **);
+
+typedef enum sr_ev_notif_type_e {
+	SR_EV_NOTIF_REALTIME,
+	SR_EV_NOTIF_REPLAY,
+	SR_EV_NOTIF_REPLAY_COMPLETE,
+	SR_EV_NOTIF_STOP,
+	SR_EV_NOTIF_SUSPENDED,
+	SR_EV_NOTIF_RESUMED,
+	...
+} sr_ev_notif_type_t;
+
+extern "Python" void srpy_event_notif_tree_cb(
+	sr_session_ctx_t *, const sr_ev_notif_type_t notif_type, const struct lyd_node *notif,
+	time_t timestamp, void *priv);
+
+int sr_event_notif_subscribe_tree(sr_session_ctx_t *, const char *module_name, const char *xpath, time_t start_time, time_t stop_time,
+	void (*)(sr_session_ctx_t *, const sr_ev_notif_type_t, const struct lyd_node*, time_t, void*),
+	void *priv, sr_subscr_options_t, sr_subscription_ctx_t **);
+
+int sr_event_notif_send_tree(sr_session_ctx_t *, struct lyd_node *notif);
