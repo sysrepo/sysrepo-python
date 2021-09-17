@@ -68,6 +68,7 @@ enable=all
 # --disable=W".
 disable=
 	broad-except,
+	consider-using-f-string,
 	cyclic-import,
 	duplicate-code,
 	file-ignored,
