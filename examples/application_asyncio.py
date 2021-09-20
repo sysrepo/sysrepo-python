@@ -128,7 +128,7 @@ async def poweroff(xpath, input_params, event, private_data):
     print("========================")
     print("RPC call: %s" % xpath)
     print("params: %s" % input_params)
-    out = {"poweroff": {"message": "bye bye"}}
+    out = {"message": "bye bye"}
     print("returning %s" % out)
     print("---------------")
     print()
