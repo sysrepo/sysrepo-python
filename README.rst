@@ -46,6 +46,20 @@ On a Debian/Ubuntu system:
 
    apt-get install python3-dev gcc python3-cffi
 
+Compatibility
+-------------
+
+.. attention::
+
+   For now, only the 1.x versions of sysrepo__ and libyang__ are supported.
+   These CFFI bindings will not work with the latest versions. See issues
+   `#17`__ for more details and `#12`__ for updates.
+
+   __ https://github.com/sysrepo/sysrepo/tree/libyang1
+   __ https://github.com/CESNET/libyang/tree/libyang1
+   __ https://github.com/sysrepo/sysrepo-python/issues/17
+   __ https://github.com/sysrepo/sysrepo-python/issues/12
+
 Compilation Flags
 -----------------
 

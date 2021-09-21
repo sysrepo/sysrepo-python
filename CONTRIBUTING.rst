@@ -20,7 +20,7 @@ Here are the steps for submitting a change in the code base:
 
 #. Clone your own fork into your development machine::
 
-      git clone https://github.com/<you>/libyang-python
+      git clone https://github.com/<you>/sysrepo-python
 
 #. Create a new branch named after what your are working on::
 
