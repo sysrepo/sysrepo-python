@@ -543,7 +543,17 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
                 ).values()
             )
         )
-        callback(xpath, notif_type, notif_dict, timestamp, private_data)
+        if is_async_func(callback):
+            task = subscription.loop.create_task(
+                callback(xpath, notif_type, notif_dict, timestamp, private_data)
+            )
+            task.add_done_callback(
+                functools.partial(subscription.task_done, None, "notif")
+            )
+        else:
+            callback(xpath, notif_type, notif_dict, timestamp, private_data)
+
+        return lib.SR_ERR_OK
 
     except BaseException as e:
         # ATTENTION: catch all exceptions!
@@ -552,3 +562,4 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
             session.set_error(xpath, str(e))
+        return lib.SR_ERR_CALLBACK_FAILED
