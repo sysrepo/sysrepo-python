@@ -516,7 +516,7 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
         python object.
 
     :returns:
-        User error code (sr_error_t).
+        None
     :raises:
         IMPORTANT: This function *CANNOT* raise any exception. The C callstack does not
         handle that well and when it happens the outcome is undetermined. Make sure to
@@ -553,13 +553,8 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
         else:
             callback(xpath, notif_type, notif_dict, timestamp, private_data)
 
-        return lib.SR_ERR_OK
-
-    except BaseException as e:
+    except BaseException:
         # ATTENTION: catch all exceptions!
         # including KeyboardInterrupt, CancelledError, etc.
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
-        if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, str(e))
-        return lib.SR_ERR_CALLBACK_FAILED
