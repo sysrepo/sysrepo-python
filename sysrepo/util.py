@@ -89,3 +89,25 @@ def configure_logging(
         lib.sr_log_set_cb(lib.srpy_log_cb)
     else:
         lib.sr_log_set_cb(ffi.NULL)
+
+
+# ------------------------------------------------------------------------------
+def get_syslog_level() -> int:
+    """
+    Return current syslog log level.
+
+    :returns int:
+        The log level.
+    """
+    return LOG_LEVELS_SR2PY.get(lib.sr_log_get_syslog(), logging.NOTSET)
+
+
+# ------------------------------------------------------------------------------
+def get_stderr_level() -> int:
+    """
+    Return current stderr log level.
+
+    :returns int:
+        The log level.
+    """
+    return LOG_LEVELS_SR2PY.get(lib.sr_log_get_stderr(), logging.NOTSET)
