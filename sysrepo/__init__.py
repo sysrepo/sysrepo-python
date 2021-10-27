@@ -28,7 +28,7 @@ from .errors import (
     SysrepoUnsupportedError,
     SysrepoValidationFailedError,
 )
-from .util import configure_logging
+from .util import configure_logging, get_stderr_level, get_syslog_level
 from .value import (
     AnyData,
     AnyXML,
@@ -104,4 +104,6 @@ __all__ = [
     "Value",
     "update_config_cache",
     "configure_logging",
+    "get_syslog_level",
+    "get_stderr_level",
 ]
