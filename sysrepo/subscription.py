@@ -33,6 +33,7 @@ class Subscription:
         asyncio_register: bool = False,
         strict: bool = False,
         include_implicit_defaults: bool = True,
+        extra_info: bool = False,
     ):
         """
         :arg callback:
@@ -49,6 +50,10 @@ class Subscription:
         :arg include_implicit_defaults:
             If True, include implicit default nodes into Change objects passed to module
             change callbacks and into input parameters passed to RPC/action callbacks.
+        :arg extra_info:
+            When True, the given callback is called with extra keyword arguments
+            containing extra information of the sysrepo session that gave origin to the
+            event
         """
         if is_async_func(callback) and not asyncio_register:
             raise ValueError(
@@ -59,6 +64,7 @@ class Subscription:
         self.asyncio_register = asyncio_register
         self.strict = strict
         self.include_implicit_defaults = include_implicit_defaults
+        self.extra_info = extra_info
         if asyncio_register:
             self.loop = asyncio.get_event_loop()
         else:
@@ -214,6 +220,13 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
         callback = subscription.callback
         private_data = subscription.private_data
         event_name = EVENT_NAMES[event]
+        if subscription.extra_info:
+            extra_info = {
+                "netconf_id": session.get_netconf_id(),
+                "user": session.get_user(),
+            }
+        else:
+            extra_info = {}
 
         if is_async_func(callback):
             task_id = (event, req_id)
@@ -230,7 +243,7 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
                     )
                 )
                 task = subscription.loop.create_task(
-                    callback(event_name, req_id, changes, private_data)
+                    callback(event_name, req_id, changes, private_data, **extra_info)
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, event_name)
@@ -257,7 +270,7 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
                     include_implicit_defaults=subscription.include_implicit_defaults,
                 )
             )
-            callback(event_name, req_id, changes, private_data)
+            callback(event_name, req_id, changes, private_data, **extra_info)
 
         return lib.SR_ERR_OK
 
@@ -328,12 +341,21 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
         subscription = ffi.from_handle(priv)
         callback = subscription.callback
         private_data = subscription.private_data
+        if subscription.extra_info:
+            extra_info = {
+                "netconf_id": session.get_netconf_id(),
+                "user": session.get_user(),
+            }
+        else:
+            extra_info = {}
 
         if is_async_func(callback):
             task_id = req_id
 
             if task_id not in subscription.tasks:
-                task = subscription.loop.create_task(callback(req_xpath, private_data))
+                task = subscription.loop.create_task(
+                    callback(req_xpath, private_data, **extra_info)
+                )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, "oper")
                 )
@@ -349,7 +371,7 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
             oper_data = task.result()
 
         else:
-            oper_data = callback(req_xpath, private_data)
+            oper_data = callback(req_xpath, private_data, **extra_info)
 
         if isinstance(oper_data, dict):
             # convert oper_data to a libyang.DNode object
@@ -438,13 +460,20 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
                 ).values()
             )
         )
+        if subscription.extra_info:
+            extra_info = {
+                "netconf_id": session.get_netconf_id(),
+                "user": session.get_user(),
+            }
+        else:
+            extra_info = {}
 
         if is_async_func(callback):
             task_id = (event, req_id)
 
             if task_id not in subscription.tasks:
                 task = subscription.loop.create_task(
-                    callback(xpath, input_dict, event_name, private_data)
+                    callback(xpath, input_dict, event_name, private_data, **extra_info)
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, event_name)
@@ -461,7 +490,9 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
             output_dict = task.result()
 
         else:
-            output_dict = callback(xpath, input_dict, event_name, private_data)
+            output_dict = callback(
+                xpath, input_dict, event_name, private_data, **extra_info
+            )
 
         if event != lib.SR_EV_RPC:
             # May happen when there are multiple callback registered for the
@@ -543,15 +574,27 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
                 ).values()
             )
         )
+        if subscription.extra_info:
+            extra_info = {
+                "netconf_id": session.get_netconf_id(),
+                "user": session.get_user(),
+            }
+        else:
+            extra_info = {}
+
         if is_async_func(callback):
             task = subscription.loop.create_task(
-                callback(xpath, notif_type, notif_dict, timestamp, private_data)
+                callback(
+                    xpath, notif_type, notif_dict, timestamp, private_data, **extra_info
+                )
             )
             task.add_done_callback(
                 functools.partial(subscription.task_done, None, "notif")
             )
         else:
-            callback(xpath, notif_type, notif_dict, timestamp, private_data)
+            callback(
+                xpath, notif_type, notif_dict, timestamp, private_data, **extra_info
+            )
 
     except BaseException:
         # ATTENTION: catch all exceptions!

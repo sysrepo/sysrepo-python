@@ -1,6 +1,7 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import getpass
 import logging
 import os
 import unittest
@@ -21,16 +22,23 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
         with sysrepo.SysrepoConnection() as conn:
             conn.install_module(YANG_FILE, enabled_features=["turbo"])
         cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
-        cls.sess = cls.conn.start_session()
 
     @classmethod
     def tearDownClass(cls):
-        cls.sess.stop()
         cls.conn.remove_module("sysrepo-example")
         cls.conn.disconnect()
         # reconnect to make sure module is removed
         with sysrepo.SysrepoConnection(err_on_sched_fail=True):
             pass
+
+    def setUp(self):
+        with self.conn.start_session("running") as sess:
+            sess.delete_item("/sysrepo-example:conf")
+            sess.apply_changes()
+        self.sess = self.conn.start_session()
+
+    def tearDown(self):
+        self.sess.stop()
 
     def test_module_change_sub(self):
         priv = object()
@@ -200,3 +208,36 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                 sent_config, "sysrepo-example", strict=True, wait=True
             )
             self.assertEqual(current_config, sent_config)
+
+    def test_module_change_sub_with_extra_info(self):
+        priv = object()
+        calls = []
+
+        def module_change_cb(event, req_id, changes, private_data, **kwargs):
+            self.assertIn(event, ("change", "done", "abort"))
+            self.assertIsInstance(req_id, int)
+            self.assertIsInstance(changes, list)
+            self.assertIs(private_data, priv)
+            self.assertIn("user", kwargs)
+            self.assertEqual(getpass.getuser(), kwargs["user"])
+            self.assertIn("netconf_id", kwargs)
+            self.assertIsInstance(kwargs["netconf_id"], int)
+            calls.append((event, req_id, changes, private_data, kwargs))
+
+        self.sess.subscribe_module_change(
+            "sysrepo-example",
+            "/sysrepo-example:conf",
+            module_change_cb,
+            private_data=priv,
+            extra_info=True,
+        )
+
+        with self.conn.start_session("running") as ch_sess:
+            sent_config = {"conf": {"system": {"hostname": "bar"}}}
+            ch_sess.replace_config(
+                sent_config, "sysrepo-example", strict=True, wait=True
+            )
+            # Successful change callbacks are called twice:
+            #   * once with event "change"
+            #   * once with event "done"
+            self.assertEqual(2, len(calls))

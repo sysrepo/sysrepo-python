@@ -121,6 +121,30 @@ class SysrepoSession:
             lib.sr_set_error, self.cdata, str2c(xpath), str2c("%s"), str2c(message)
         )
 
+    def get_netconf_id(self) -> int:
+        """
+        It can only be called on an implicit sysrepo.Session (i.e., it can only be
+        called from an event callback)
+
+        :returns: the NETCONF session ID set for the event originator sysrepo session
+        """
+        if not self.is_implicit:
+            raise SysrepoUnsupportedError(
+                "can only report netconf id on implicit sessions"
+            )
+        return lib.sr_session_get_event_nc_id(self.cdata)
+
+    def get_user(self) -> str:
+        """
+        It can only be called on an implicit sysrepo.Session (i.e., it can only be
+        called from an event callback)
+
+        :returns: the effective username of the event originator sysrepo session
+        """
+        if not self.is_implicit:
+            raise SysrepoUnsupportedError("can only report user on implicit sessions")
+        return c2str(lib.sr_session_get_event_user(self.cdata))
+
     def get_ly_ctx(self) -> libyang.Context:
         """
         :returns:
@@ -152,6 +176,13 @@ class SysrepoSession:
         have changed.
     :arg private_data:
         Private context opaque to sysrepo used when subscribing.
+    :arg kwargs (optional):
+        If the callback was registered with the argument extra_info=True (see
+        Session.subscribe_module_change), then extra keyword arguments are passed when
+        calling the callback:
+            * netconf_id: the NETCONF session ID set for the event originator
+                sysrepo session
+            * user: the effective username of the event originator sysrepo session
 
     When event is one of ("update", "change"), if the callback raises an exception, the
     changes will be rejected and the error will be forwarded to the client that made the
@@ -174,7 +205,8 @@ class SysrepoSession:
         enabled: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
-        include_implicit_defaults: bool = True
+        include_implicit_defaults: bool = True,
+        extra_info: bool = False
     ) -> None:
         """
         Subscribe for changes made in the specified module.
@@ -210,6 +242,10 @@ class SysrepoSession:
             monitored read file descriptors. Implies `no_thread=True`.
         :arg include_implicit_defaults:
             Include implicit default nodes in changes.
+        :arg extra_info:
+            When True, the given callback is called with extra keyword arguments
+            containing extra information of the sysrepo session that gave origin to the
+            event (see ModuleChangeCallbackType for more details)
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
@@ -220,6 +256,7 @@ class SysrepoSession:
             private_data,
             asyncio_register=asyncio_register,
             include_implicit_defaults=include_implicit_defaults,
+            extra_info=extra_info,
         )
         sub_p = ffi.new("sr_subscription_ctx_t **")
 
@@ -253,6 +290,13 @@ class SysrepoSession:
         module operational data.
     :arg private_data:
         Private context opaque to sysrepo used when subscribing.
+    :arg kwargs (optional):
+        If the callback was registered with the argument extra_info=True (see
+        Session.subscribe_module_change), then extra keyword arguments are passed when
+        calling the callback:
+            * netconf_id: the NETCONF session ID set for the event originator
+                sysrepo session
+            * user: the effective username of the event originator sysrepo session
 
     The callback is expected to return a python dictionary containing the operational
     data. The dictionary should be in the libyang "dict" format. It will be parsed to a
@@ -272,7 +316,8 @@ class SysrepoSession:
         no_thread: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
-        strict: bool = False
+        strict: bool = False,
+        extra_info: bool = False
     ) -> None:
         """
         Register for providing operational data at the given xpath.
@@ -296,13 +341,21 @@ class SysrepoSession:
         :arg strict:
             Reject the whole data returned by callback if it contains elements without
             schema definition.
+        :arg extra_info:
+            When True, the given callback is called with extra keyword arguments
+            containing extra information of the sysrepo session that gave origin to the
+            event (see OperDataCallbackType for more details)
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
         _check_subscription_callback(callback, self.OperDataCallbackType)
 
         sub = Subscription(
-            callback, private_data, asyncio_register=asyncio_register, strict=strict
+            callback,
+            private_data,
+            asyncio_register=asyncio_register,
+            strict=strict,
+            extra_info=extra_info,
         )
         sub_p = ffi.new("sr_subscription_ctx_t **")
 
@@ -369,6 +422,13 @@ class SysrepoSession:
         will be called with 'abort'.
     :arg private_data:
         Private context opaque to sysrepo used when subscribing.
+    :arg kwargs (optional):
+        If the callback was registered with the argument extra_info=True (see
+        Session.subscribe_module_change), then extra keyword arguments are passed when
+        calling the callback:
+            * netconf_id: the NETCONF session ID set for the event originator
+                sysrepo session
+            * user: the effective username of the event originator sysrepo session
 
     The callback is expected to return a python dictionary containing the RPC output
     data. The dictionary should be in the libyang "dict" format and must only contain
@@ -393,7 +453,8 @@ class SysrepoSession:
         private_data: Any = None,
         asyncio_register: bool = False,
         strict: bool = False,
-        include_implicit_defaults: bool = True
+        include_implicit_defaults: bool = True,
+        extra_info: bool = False
     ) -> None:
         """
         Subscribe for the delivery of an RPC/action.
@@ -418,6 +479,10 @@ class SysrepoSession:
             schema definition.
         :arg include_implicit_defaults:
             Include implicit defaults into input parameters passed to callbacks.
+        :arg extra_info:
+            When True, the given callback is called with extra keyword arguments
+            containing extra information of the sysrepo session that gave origin to the
+            event (see RpcCallbackType for more details)
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
@@ -429,6 +494,7 @@ class SysrepoSession:
             asyncio_register=asyncio_register,
             strict=strict,
             include_implicit_defaults=include_implicit_defaults,
+            extra_info=extra_info,
         )
         sub_p = ffi.new("sr_subscription_ctx_t **")
 
@@ -480,6 +546,13 @@ class SysrepoSession:
         Timestamp of the notification as an unsigned 32-bits integer.
     :arg private_data:
         Private context opaque to sysrepo used when subscribing.
+    :arg kwargs (optional):
+        If the callback was registered with the argument extra_info=True (see
+        Session.subscribe_module_change), then extra keyword arguments are passed when
+        calling the callback:
+            * netconf_id: the NETCONF session ID set for the event originator
+                sysrepo session
+            * user: the effective username of the event originator sysrepo session
     """
 
     def subscribe_notification(
@@ -492,7 +565,8 @@ class SysrepoSession:
         stop_time: int = 0,
         no_thread: bool = False,
         asyncio_register: bool = False,
-        private_data: Any = None
+        private_data: Any = None,
+        extra_info: bool = False
     ) -> None:
         """
         Subscribe for the delivery of a notification.
@@ -516,6 +590,10 @@ class SysrepoSession:
             read file descriptors. Implies no_thread=True.
         :arg private_data:
             Private context passed to the callback function, opaque to sysrepo.
+        :arg extra_info:
+            When True, the given callback is called with extra keyword arguments
+            containing extra information of the sysrepo session that gave origin to the
+            event (see RpcCallbackType for more details)
         """
 
         if self.is_implicit:
@@ -526,6 +604,7 @@ class SysrepoSession:
             callback,
             private_data,
             asyncio_register=asyncio_register,
+            extra_info=extra_info,
         )
 
         sub_p = ffi.new("sr_subscription_ctx_t **")
