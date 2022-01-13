@@ -125,3 +125,11 @@ class SessionTest(unittest.TestCase):
                     }
                 },
             )
+
+    def test_get_netconf_id_and_get_user_are_only_available_in_implicit_session(self):
+        with self.conn.start_session("running") as sess:
+            with self.assertRaises(sysrepo.SysrepoUnsupportedError):
+                sess.get_netconf_id()
+
+            with self.assertRaises(sysrepo.SysrepoUnsupportedError):
+                sess.get_user()

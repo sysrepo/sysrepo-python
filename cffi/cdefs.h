@@ -85,6 +85,8 @@ int sr_session_stop(sr_session_ctx_t *);
 int sr_session_switch_ds(sr_session_ctx_t *, sr_datastore_t);
 sr_datastore_t sr_session_get_ds(sr_session_ctx_t *);
 sr_conn_ctx_t *sr_session_get_connection(sr_session_ctx_t *);
+uint32_t sr_session_get_event_nc_id(sr_session_ctx_t *);
+const char *sr_session_get_event_user(sr_session_ctx_t *);
 int sr_get_error(sr_session_ctx_t *, const sr_error_info_t **);
 int sr_set_error(sr_session_ctx_t *, const char *, const char *, ...);
 

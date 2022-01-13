@@ -1,6 +1,7 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import getpass
 import logging
 import os
 import unittest
@@ -134,3 +135,30 @@ class RpcSubscriptionTest(unittest.TestCase):
                 self.assertEqual(len(calls), 1)
                 self.assertEqual(calls[0], (xpath, {"duration": 1}, "rpc", priv))
                 del calls[:]
+
+    def test_rpc_sub_with_extra_info(self):
+        priv = object()
+        calls = []
+        rpc_xpath = "/sysrepo-example:poweroff"
+
+        def rpc_cb(xpath, input_params, event, private_data, **kwargs):
+            self.assertEqual(rpc_xpath, xpath)
+            self.assertEqual(input_params, {"behaviour": "success"})
+            self.assertEqual(event, "rpc")
+            self.assertIs(private_data, priv)
+            self.assertIn("user", kwargs)
+            self.assertEqual(getpass.getuser(), kwargs["user"])
+            self.assertIn("netconf_id", kwargs)
+            self.assertIsInstance(kwargs["netconf_id"], int)
+            calls.append((xpath, input_params, event, private_data))
+            return {"message": "bye bye"}
+
+        with self.conn.start_session() as sess:
+            sess.subscribe_rpc_call(
+                rpc_xpath, rpc_cb, private_data=priv, strict=True, extra_info=True
+            )
+
+            with self.conn.start_session() as rpc_sess:
+                output = rpc_sess.rpc_send(rpc_xpath, {"behaviour": "success"})
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(output, {"message": "bye bye"})

@@ -1,6 +1,7 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import getpass
 import logging
 import os
 import unittest
@@ -21,16 +22,20 @@ class OperSubscriptionTest(unittest.TestCase):
         with sysrepo.SysrepoConnection() as conn:
             conn.install_module(YANG_FILE, enabled_features=["turbo"])
         cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
-        cls.sess = cls.conn.start_session()
 
     @classmethod
     def tearDownClass(cls):
-        cls.sess.stop()
         cls.conn.remove_module("sysrepo-example")
         cls.conn.disconnect()
         # reconnect to make sure module is removed
         with sysrepo.SysrepoConnection(err_on_sched_fail=True):
             pass
+
+    def setUp(self):
+        self.sess = self.conn.start_session()
+
+    def tearDown(self):
+        self.sess.stop()
 
     def test_oper_sub(self):
         priv = object()
@@ -69,3 +74,31 @@ class OperSubscriptionTest(unittest.TestCase):
             state = {"state": {"invalid": True}}
             with self.assertRaises(sysrepo.SysrepoCallbackFailedError):
                 op_sess.get_data("/sysrepo-example:state")
+
+    def test_oper_sub_with_extra_info(self):
+        priv = object()
+        calls = []
+
+        def oper_data_cb(xpath, private_data, **kwargs):
+            self.assertEqual(xpath, "/sysrepo-example:state")
+            self.assertEqual(private_data, priv)
+            self.assertIn("user", kwargs)
+            self.assertEqual(getpass.getuser(), kwargs["user"])
+            self.assertIn("netconf_id", kwargs)
+            self.assertIsInstance(kwargs["netconf_id"], int)
+            calls.append((xpath, private_data, kwargs))
+            return {"state": {}}
+
+        self.sess.subscribe_oper_data_request(
+            "sysrepo-example",
+            "/sysrepo-example:state",
+            oper_data_cb,
+            private_data=priv,
+            strict=True,
+            extra_info=True,
+        )
+
+        with self.conn.start_session("operational") as op_sess:
+            oper_data = op_sess.get_data("/sysrepo-example:state")
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(oper_data, {"state": {}})
