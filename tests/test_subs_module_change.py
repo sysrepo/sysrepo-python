@@ -19,17 +19,15 @@ sysrepo.configure_logging(stderr_level=logging.ERROR)
 class ModuleChangeSubscriptionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with sysrepo.SysrepoConnection() as conn:
-            conn.install_module(YANG_FILE, enabled_features=["turbo"])
-        cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
+        cls.conn = sysrepo.SysrepoConnection()
+        cls.conn.install_module(YANG_FILE, enabled_features=["turbo"])
 
     @classmethod
     def tearDownClass(cls):
-        cls.conn.remove_module("sysrepo-example")
+        # we have to disconnect first to release all resources
         cls.conn.disconnect()
-        # reconnect to make sure module is removed
-        with sysrepo.SysrepoConnection(err_on_sched_fail=True):
-            pass
+        with sysrepo.SysrepoConnection() as c:
+            c.remove_module("sysrepo-example")
 
     def setUp(self):
         with self.conn.start_session("running") as sess:
@@ -70,17 +68,13 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             expected_changes = [
                 sysrepo.ChangeCreated("/sysrepo-example:conf/system/hostname", "bar")
             ]
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             self.assertEqual(current_config, sent_config)
             # 2.
             sent_config = {"conf": {"system": {"hostname": "INVALID"}}}
             expected_changes = []
             with self.assertRaises(sysrepo.SysrepoCallbackFailedError):
-                ch_sess.replace_config(
-                    sent_config, "sysrepo-example", strict=True, wait=True
-                )
+                ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             # 3.
             sent_config = {
                 "conf": {
@@ -101,9 +95,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                     "/sysrepo-example:conf/network/interface[name='eth0']/up", True
                 ),
             ]
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             self.assertEqual(current_config, sent_config)
             # 4.
             sent_config = {
@@ -134,9 +126,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                     "/sysrepo-example:conf/network/interface[name='eth2']/up", False
                 ),
             ]
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             self.assertEqual(current_config, sent_config)
             # 5.
             sent_config = {
@@ -153,9 +143,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                     False,
                 ),
             ]
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             self.assertEqual(current_config, sent_config)
             # 6.
             sent_config = {
@@ -182,9 +170,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                     "/sysrepo-example:conf/network/interface[name='eth0']/up", False
                 ),
             ]
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             self.assertEqual(current_config, sent_config)
             # 7.
             sent_config = {
@@ -198,15 +184,20 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                     },
                 }
             }
+            # sysrepo v1 behavior
+            #expected_changes = [
+            #    sysrepo.ChangeMoved(
+            #        "/sysrepo-example:conf/network/interface[name='eth2']",
+            #        after="[name='eth0']",
+            #    ),
+            #]
             expected_changes = [
                 sysrepo.ChangeMoved(
-                    "/sysrepo-example:conf/network/interface[name='eth2']",
-                    after="[name='eth0']",
+                    "/sysrepo-example:conf/network/interface[name='eth0']",
+                    after=""
                 ),
             ]
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             self.assertEqual(current_config, sent_config)
 
     def test_module_change_sub_with_extra_info(self):
@@ -234,9 +225,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
 
         with self.conn.start_session("running") as ch_sess:
             sent_config = {"conf": {"system": {"hostname": "bar"}}}
-            ch_sess.replace_config(
-                sent_config, "sysrepo-example", strict=True, wait=True
-            )
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             # Successful change callbacks are called twice:
             #   * once with event "change"
             #   * once with event "done"

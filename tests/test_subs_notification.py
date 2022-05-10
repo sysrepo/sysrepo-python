@@ -21,17 +21,13 @@ sysrepo.configure_logging(stderr_level=logging.ERROR)
 class NotificationSubscriptionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with sysrepo.SysrepoConnection() as conn:
-            conn.install_module(YANG_FILE, enabled_features=["turbo"])
-        cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
+        cls.conn = sysrepo.SysrepoConnection()
+        cls.conn.install_module(YANG_FILE, enabled_features=["turbo"])
 
     @classmethod
     def tearDownClass(cls):
         cls.conn.remove_module("sysrepo-example")
         cls.conn.disconnect()
-        # reconnect to make sure module is removed
-        with sysrepo.SysrepoConnection(err_on_sched_fail=True):
-            pass
 
     def _test_notification_sub(
         self,
