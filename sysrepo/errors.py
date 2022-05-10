@@ -44,7 +44,7 @@ class SysrepoInvalArgError(SysrepoError):
 
 @SysrepoError.register
 class SysrepoNomemError(SysrepoError):
-    rc = lib.SR_ERR_NOMEM
+    rc = lib.SR_ERR_NO_MEMORY
 
 
 @SysrepoError.register
@@ -122,7 +122,7 @@ def _get_error_msg(session) -> Optional[str]:
     """
     msg = None
     err_info_p = ffi.new("sr_error_info_t **")
-    if lib.sr_get_error(session, err_info_p) == lib.SR_ERR_OK:
+    if lib.sr_session_get_error(session, err_info_p) == lib.SR_ERR_OK:
         err_info = err_info_p[0]
         error_strings = []
         if err_info != ffi.NULL:
@@ -162,7 +162,7 @@ def check_call(
     :raises SysrepoError:
         If the function returned an error code not listed in valid_codes. If
         the first argument in args is a sr_session_ctx_t object, use it to call
-        sr_get_error() to get a detailed error message for the risen exception.
+        sr_session_get_error() to get a detailed error message for the risen exception.
     """
     ret = func(*args)
     if ret not in valid_codes:

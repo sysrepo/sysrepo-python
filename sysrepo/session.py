@@ -101,7 +101,7 @@ class SysrepoSession:
         ds = datastore_value(datastore)
         check_call(lib.sr_session_switch_ds, self.cdata, ds)
 
-    def set_error(self, xpath: Optional[str], message: str):
+    def set_error(self, message: str):
         """
         Set detailed error information into provided session. Used to notify the client
         library about errors that occurred in the application code. Does not print the
@@ -110,21 +110,35 @@ class SysrepoSession:
         Intended for change, RPC/action, or operational callbacks to be used on the
         provided session.
 
-        :arg str xpath:
-            The path where the error occured. May be `None`.
         :arg str message:
             The detailed error message.
         """
         if not self.is_implicit:
             raise SysrepoUnsupportedError("can only report errors on implicit sessions")
         check_call(
-            lib.sr_set_error, self.cdata, str2c(xpath), str2c("%s"), str2c(message)
+            lib.sr_session_set_error_message, self.cdata, str2c("%s"), str2c(message)
         )
+
+    def get_originator_name(self) -> str:
+        """
+        It can only be called on an implicit sysrepo.Session (i.e., it can only be
+        called from an event callback).
+
+        :returns: the originator name for the event originator sysrepo session
+        """
+        if not self.is_implicit:
+            raise SysrepoUnsupportedError(
+                "can only report originator name on implicit sessions"
+            )
+
+        return c2str(lib.sr_session_get_orig_name(self.cdata))
+
 
     def get_netconf_id(self) -> int:
         """
         It can only be called on an implicit sysrepo.Session (i.e., it can only be
-        called from an event callback)
+        called from an event callback).
+        It only works with netopeer2.
 
         :returns: the NETCONF session ID set for the event originator sysrepo session
         """
@@ -132,18 +146,45 @@ class SysrepoSession:
             raise SysrepoUnsupportedError(
                 "can only report netconf id on implicit sessions"
             )
-        return lib.sr_session_get_event_nc_id(self.cdata)
+
+        if self.get_originator_name() != 'netopeer2':
+            raise SysrepoUnsupportedError(
+                "can only report netconf id for netopeer2"
+            )
+
+        size = ffi.new("uint32_t *")
+        p_nc_id = ffi.new("const void **")
+
+        if sr_session_get_orig_data(self.cdata, 0, size, p_nc_id) != lib.SR_ERR_OK:
+            raise SysrepoInternalError("sr_session_get_orig_data failed")
+
+        nc_id = ffi.cast("uint32_t *", p_nc_id[0])
+        return nc_id[0]
 
     def get_user(self) -> str:
         """
         It can only be called on an implicit sysrepo.Session (i.e., it can only be
         called from an event callback)
+        It only works with netopeer2.
 
         :returns: the effective username of the event originator sysrepo session
         """
         if not self.is_implicit:
             raise SysrepoUnsupportedError("can only report user on implicit sessions")
-        return c2str(lib.sr_session_get_event_user(self.cdata))
+
+        if self.get_originator_name() != 'netopeer2':
+            raise SysrepoUnsupportedError(
+                "can only report netconf id for netopeer2"
+            )
+
+        size = ffi.new("uint32_t *")
+        p_user = ffi.new("const void **")
+
+        if sr_session_get_orig_data(self.cdata, 1, size, p_user) != lib.SR_ERR_OK:
+            raise SysrepoInternalError("sr_session_get_orig_data failed")
+
+        user = ffi.cast("const char *", p_user[0])
+        return c2str(user)
 
     def get_ly_ctx(self) -> libyang.Context:
         """
@@ -986,7 +1027,6 @@ class SysrepoSession:
         config: Optional[libyang.DNode],
         module_name: Optional[str],
         timeout_ms: int = 0,
-        wait: bool = False,
     ) -> None:
         """
         Replace a datastore with the contents of a data tree.
@@ -998,8 +1038,6 @@ class SysrepoSession:
             The module for which to replace the configuration.
         :arg timeout_ms:
             Configuration callback timeout in milliseconds. If 0, default is used.
-        :arg wait:
-            Whether to wait until all callbacks on all events are finished.
 
         :raises SysrepoError:
             If the operation failed.
@@ -1017,7 +1055,6 @@ class SysrepoSession:
             str2c(module_name),
             dnode,
             timeout_ms,
-            wait,
         )
 
     def replace_config(
@@ -1057,7 +1094,7 @@ class SysrepoSession:
             raise SysrepoUnsupportedError("cannot validate with implicit sessions")
         check_call(lib.sr_validate, self.cdata, 0)
 
-    def apply_changes(self, timeout_ms: int = 0, wait: bool = False) -> None:
+    def apply_changes(self, timeout_ms: int = 0) -> None:
         """
         Apply changes made in the current session. In case the changes could not be
         applied successfully for any reason, they remain intact in the session until
@@ -1065,17 +1102,13 @@ class SysrepoSession:
 
         :arg timeout_ms:
             Configuration callback timeout in milliseconds. If 0, default is used.
-        :arg wait:
-            If True, wait until all callbacks on all events are finished (even "done" or
-            "abort"). If not set, these events may not yet be processed after the
-            function returns. Note that all "change" events are always waited for.
 
         :raises SysrepoError:
             If changes could not be applied.
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot apply_changes with implicit sessions")
-        check_call(lib.sr_apply_changes, self.cdata, timeout_ms, wait)
+        check_call(lib.sr_apply_changes, self.cdata, timeout_ms)
 
     def discard_changes(self) -> None:
         """
@@ -1180,13 +1213,19 @@ class SysrepoSession:
         finally:
             out_dnode.free()
 
-    def notification_send_ly(self, notification: libyang.DNode) -> None:
+    def notification_send_ly(self, notification: libyang.DNode, timeout_ms: int = 0, wait: bool = False) -> None:
         """
         Send a notification
 
         :arg notification:
             The notification tree. It is *NOT* spent and must be freed by the
             caller.
+        :arg timeout_ms:
+             Configuration callback timeout in milliseconds. If 0, default is used.
+        :arg wait:
+            If True, wait until all callbacks on all events are finished (even "done" or
+            "abort"). If not set, these events may not yet be processed after the
+            function returns. Note that all "change" events are always waited for.
 
         :raises SysrepoError:
             If the notification callback failed.
@@ -1195,7 +1234,7 @@ class SysrepoSession:
             raise TypeError("notification must be a libyang.DNode")
         # libyang and sysrepo bindings are different, casting is required
         in_dnode = ffi.cast("struct lyd_node *", notification.cdata)
-        check_call(lib.sr_event_notif_send_tree, self.cdata, in_dnode)
+        check_call(lib.sr_event_notif_send_tree, self.cdata, in_dnode, timeout_ms, wait)
 
     def notification_send(
         self, xpath: str, notification: Dict, strict: bool = False

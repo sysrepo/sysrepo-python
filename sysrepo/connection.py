@@ -144,7 +144,7 @@ class SysrepoConnection:
         """
         if enabled_features:
             # convert to C strings array
-            features = tuple(str2c(f) for f in enabled_features)
+            features = tuple([str2c(f) for f in enabled_features] + [ffi.NULL])
         else:
             features = ffi.NULL
         check_call(
@@ -152,8 +152,7 @@ class SysrepoConnection:
             self.cdata,
             str2c(filepath),
             str2c(searchdirs),
-            features,
-            len(enabled_features),
+            features
         )
 
     def remove_module(self, name: str) -> None:

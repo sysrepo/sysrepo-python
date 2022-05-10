@@ -170,7 +170,7 @@ NOTIF_TYPES = {
     lib.SR_EV_NOTIF_REALTIME: "realtime",
     lib.SR_EV_NOTIF_REPLAY: "replay",
     lib.SR_EV_NOTIF_REPLAY_COMPLETE: "replay_complete",
-    lib.SR_EV_NOTIF_STOP: "stop",
+    lib.SR_EV_NOTIF_TERMINATED: "stop",
     lib.SR_EV_NOTIF_SUSPENDED: "suspended",
     lib.SR_EV_NOTIF_RESUMED: "resumed",
 }
@@ -281,7 +281,7 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             and isinstance(session, SysrepoSession)
             and isinstance(xpath, str)
         ):
-            session.set_error(xpath, e.msg)
+            session.set_error(e.msg)
         return e.rc
 
     except BaseException as e:
@@ -294,7 +294,7 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             and isinstance(session, SysrepoSession)
             and isinstance(xpath, str)
         ):
-            session.set_error(xpath, str(e))
+            session.set_error(str(e))
         return lib.SR_ERR_CALLBACK_FAILED
 
 
@@ -396,7 +396,7 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
 
     except SysrepoError as e:
         if e.msg and isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, e.msg)
+            session.set_error(e.msg)
         return e.rc
 
     except BaseException as e:
@@ -405,7 +405,7 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, str(e))
+            session.set_error(str(e))
         return lib.SR_ERR_CALLBACK_FAILED
 
 
@@ -515,7 +515,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
     except SysrepoError as e:
         if e.msg and isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, e.msg)
+            session.set_error(e.msg)
         return e.rc
 
     except BaseException as e:
@@ -524,7 +524,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, str(e))
+            session.set_error(str(e))
         return lib.SR_ERR_CALLBACK_FAILED
 
 
