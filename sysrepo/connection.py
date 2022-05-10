@@ -119,7 +119,7 @@ class SysrepoConnection:
         :returns:
             The `libyang.Context` object associated with this connection.
         """
-        ctx = lib.sr_get_context(self.cdata)
+        ctx = lib.sr_acquire_context(self.cdata)
         if not ctx:
             raise SysrepoInternalError("sr_get_context failed")
         return libyang.Context(cdata=ctx)
@@ -155,7 +155,7 @@ class SysrepoConnection:
             features
         )
 
-    def remove_module(self, name: str) -> None:
+    def remove_module(self, name: str, force: bool = False) -> None:
         """
         Remove an installed module from sysrepo. Deferred until there are no
         connections!
@@ -163,4 +163,4 @@ class SysrepoConnection:
         :arg str name:
             Name of the module to remove.
         """
-        check_call(lib.sr_remove_module, self.cdata, str2c(name))
+        check_call(lib.sr_remove_module, self.cdata, str2c(name), force)
