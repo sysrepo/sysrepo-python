@@ -96,8 +96,8 @@ def main():
                     data = ctx.parse_data_mem(
                         sys.stdin.read(),
                         args.format,
-                        config=True,
-                        strict=not args.not_strict,
+                        parser_no_state=True,
+                        parser_strict=not args.not_strict,
                     )
                     sess.replace_config_ly(data, args.import_)
 
@@ -114,7 +114,7 @@ def main():
                     rpc_input = ctx.parse_data_mem(
                         sys.stdin.read(),
                         args.format,
-                        strict=not args.not_strict,
+                        parser_strict=not args.not_strict,
                     )
                     try:
                         rpc_output = sess.rpc_send_ly(rpc_input)
