@@ -144,7 +144,6 @@ class SysrepoSession:
 
         return c2str(lib.sr_session_get_orig_name(self.cdata))
 
-
     def get_netconf_id(self) -> int:
         """
         It can only be called on an implicit sysrepo.Session (i.e., it can only be
@@ -158,10 +157,8 @@ class SysrepoSession:
                 "can only report netconf id on implicit sessions"
             )
 
-        if self.get_originator_name() != 'netopeer2':
-            raise SysrepoUnsupportedError(
-                "can only report netconf id for netopeer2"
-            )
+        if self.get_originator_name() != "netopeer2":
+            raise SysrepoUnsupportedError("can only report netconf id for netopeer2")
 
         size = ffi.new("uint32_t *")
         p_nc_id = ffi.new("const void **")
@@ -183,10 +180,8 @@ class SysrepoSession:
         if not self.is_implicit:
             raise SysrepoUnsupportedError("can only report user on implicit sessions")
 
-        if self.get_originator_name() != 'netopeer2':
-            raise SysrepoUnsupportedError(
-                "can only report netconf id for netopeer2"
-            )
+        if self.get_originator_name() != "netopeer2":
+            raise SysrepoUnsupportedError("can only report netconf id for netopeer2")
 
         size = ffi.new("uint32_t *")
         p_user = ffi.new("const void **")
@@ -1219,7 +1214,9 @@ class SysrepoSession:
         finally:
             out_dnode.free()
 
-    def notification_send_ly(self, notification: libyang.DNode, timeout_ms: int = 0, wait: bool = False) -> None:
+    def notification_send_ly(
+        self, notification: libyang.DNode, timeout_ms: int = 0, wait: bool = False
+    ) -> None:
         """
         Send a notification
 

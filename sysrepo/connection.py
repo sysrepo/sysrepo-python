@@ -136,7 +136,7 @@ class SysrepoConnection:
             self.cdata,
             str2c(filepath),
             str2c(searchdirs),
-            features
+            features,
         )
 
     def remove_module(self, name: str, force: bool = False) -> None:
