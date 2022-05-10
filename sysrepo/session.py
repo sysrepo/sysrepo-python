@@ -1184,11 +1184,11 @@ class SysrepoSession:
             raise TypeError("rpc_input must be a libyang.DNode")
         # libyang and sysrepo bindings are different, casting is required
         in_dnode = ffi.cast("struct lyd_node *", rpc_input.cdata)
-        out_dnode_p = ffi.new("struct lyd_node **")
-        check_call(lib.sr_rpc_send_tree, self.cdata, in_dnode, timeout_ms, out_dnode_p)
-        if not out_dnode_p[0]:
+        sr_data_p = ffi.new("sr_data_t **")
+        check_call(lib.sr_rpc_send_tree, self.cdata, in_dnode, timeout_ms, sr_data_p)
+        if not sr_data_p[0]:
             raise SysrepoInternalError("sr_rpc_send_tree returned NULL")
-        return libyang.DNode.new(self.get_ly_ctx(), out_dnode_p[0])
+        return libyang.DNode.new(self.get_ly_ctx(), sr_data_p[0].tree)
 
     def rpc_send(
         self,
