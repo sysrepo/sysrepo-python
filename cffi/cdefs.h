@@ -63,7 +63,7 @@ typedef struct sr_error_info_err_s {
 } sr_error_info_err_t;
 typedef struct sr_error_info_s {
 	sr_error_info_err_t *err;
-	size_t err_count;
+	uint32_t err_count;
 } sr_error_info_t;
 
 /* forward declarations from libyang */
@@ -119,7 +119,7 @@ typedef enum sr_val_type_e {
 typedef union sr_val_data_u {
 	char *binary_val;
 	char *bits_val;
-	bool bool_val;
+	int bool_val;
 	double decimal64_val;
 	char *enum_val;
 	char *identityref_val;
