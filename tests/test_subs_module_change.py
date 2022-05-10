@@ -184,13 +184,6 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                     },
                 }
             }
-            # sysrepo v1 behavior
-            # expected_changes = [
-            #    sysrepo.ChangeMoved(
-            #        "/sysrepo-example:conf/network/interface[name='eth2']",
-            #        after="[name='eth0']",
-            #    ),
-            # ]
             expected_changes = [
                 sysrepo.ChangeMoved(
                     "/sysrepo-example:conf/network/interface[name='eth0']", after=""

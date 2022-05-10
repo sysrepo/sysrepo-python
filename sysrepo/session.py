@@ -181,7 +181,6 @@ class SysrepoSession:
         """
         It can only be called on an implicit sysrepo.Session (i.e., it can only be
         called from an event callback).
-        It only works with netopeer2.
 
         :returns: the NETCONF session ID set for the event originator sysrepo session
         """
@@ -205,15 +204,11 @@ class SysrepoSession:
         """
         It can only be called on an implicit sysrepo.Session (i.e., it can only be
         called from an event callback)
-        It only works with netopeer2.
 
         :returns: the effective username of the event originator sysrepo session
         """
         if not self.is_implicit:
             raise SysrepoUnsupportedError("can only report user on implicit sessions")
-
-        if self.get_originator_name() != "netopeer2":
-            raise SysrepoUnsupportedError("can only report netconf id for netopeer2")
 
         size = ffi.new("uint32_t *")
         p_user = ffi.new("const void **")

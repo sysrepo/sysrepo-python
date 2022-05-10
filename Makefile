@@ -7,7 +7,7 @@ lint:
 	tox -e lint
 
 tests:
-	tox -e py37
+	tox -e py3
 
 format:
 	tox -e format
