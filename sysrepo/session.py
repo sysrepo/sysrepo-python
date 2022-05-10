@@ -144,6 +144,39 @@ class SysrepoSession:
 
         return c2str(lib.sr_session_get_orig_name(self.cdata))
 
+    def set_extra_info(self, originator_name: str, netconf_id: int, user: str) -> None:
+        """
+        Set the Session extra infos.
+        This function is mainly used for testing purpose.
+
+        :arg str originator_name:
+            The originator name, should be netopeer2.
+        :arg int netconf_id:
+            The netconf_id.
+        :arg str originator_name:
+            The user name.
+        """
+        # orig name
+        check_call(lib.sr_session_set_orig_name, self.cdata, str2c(originator_name))
+
+        # netconf_id
+        c_netconf_id = ffi.new("uint32_t *")
+        c_netconf_id[0] = netconf_id
+        p_netconf_id = ffi.cast("const void **", c_netconf_id)
+        check_call(
+            lib.sr_session_push_orig_data,
+            self.cdata,
+            ffi.sizeof(c_netconf_id),
+            p_netconf_id,
+        )
+
+        # user
+        c_user = ffi.new("char[]", user.encode())
+        p_user = ffi.cast("const void **", c_user)
+        check_call(
+            lib.sr_session_push_orig_data, self.cdata, ffi.sizeof(c_user), p_user
+        )
+
     def get_netconf_id(self) -> int:
         """
         It can only be called on an implicit sysrepo.Session (i.e., it can only be
@@ -163,8 +196,7 @@ class SysrepoSession:
         size = ffi.new("uint32_t *")
         p_nc_id = ffi.new("const void **")
 
-        if sr_session_get_orig_data(self.cdata, 0, size, p_nc_id) != lib.SR_ERR_OK:
-            raise SysrepoInternalError("sr_session_get_orig_data failed")
+        check_call(lib.sr_session_get_orig_data, self.cdata, 0, size, p_nc_id)
 
         nc_id = ffi.cast("uint32_t *", p_nc_id[0])
         return nc_id[0]
@@ -186,8 +218,7 @@ class SysrepoSession:
         size = ffi.new("uint32_t *")
         p_user = ffi.new("const void **")
 
-        if sr_session_get_orig_data(self.cdata, 1, size, p_user) != lib.SR_ERR_OK:
-            raise SysrepoInternalError("sr_session_get_orig_data failed")
+        check_call(lib.sr_session_get_orig_data, self.cdata, 1, size, p_user)
 
         user = ffi.cast("const char *", p_user[0])
         return c2str(user)

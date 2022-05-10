@@ -89,7 +89,9 @@ sr_conn_ctx_t *sr_session_get_connection(sr_session_ctx_t *);
 int sr_session_get_error(sr_session_ctx_t *, const sr_error_info_t **);
 int sr_session_set_error_message(sr_session_ctx_t *, const char *, ...);
 const char *sr_session_get_orig_name(sr_session_ctx_t *session);
+int sr_session_set_orig_name(sr_session_ctx_t *session, const char *);
 int sr_session_get_orig_data(sr_session_ctx_t *session, uint32_t idx, uint32_t *size, const void **data);
+int sr_session_push_orig_data(sr_session_ctx_t * session, uint32_t size, const void *data);
 
 typedef enum sr_val_type_e {
 	SR_UNKNOWN_T,

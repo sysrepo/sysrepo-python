@@ -211,7 +211,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             self.assertIn("user", kwargs)
             self.assertEqual(getpass.getuser(), kwargs["user"])
             self.assertIn("netconf_id", kwargs)
-            self.assertIsInstance(kwargs["netconf_id"], int)
+            self.assertEqual(12, kwargs["netconf_id"])
             calls.append((event, req_id, changes, private_data, kwargs))
 
         self.sess.subscribe_module_change(
@@ -223,6 +223,8 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
         )
 
         with self.conn.start_session("running") as ch_sess:
+            ch_sess.set_extra_info("netopeer2", 12, getpass.getuser())
+
             sent_config = {"conf": {"system": {"hostname": "bar"}}}
             ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             # Successful change callbacks are called twice:
