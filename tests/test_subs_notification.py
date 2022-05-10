@@ -53,7 +53,7 @@ class NotificationSubscriptionTest(unittest.TestCase):
                 self.assertIn("user", kwargs)
                 self.assertEqual(getpass.getuser(), kwargs["user"])
                 self.assertIn("netconf_id", kwargs)
-                self.assertIsInstance(kwargs["netconf_id"], int)
+                self.assertEqual(kwargs["netconf_id"], 12)
             else:
                 self.assertEqual(0, len(kwargs))
 
@@ -69,6 +69,9 @@ class NotificationSubscriptionTest(unittest.TestCase):
             )
 
             with self.conn.start_session() as sending_session:
+                if request_extra_info:
+                    sending_session.set_extra_info("netopeer2", 12, getpass.getuser())
+
                 sending_session.notification_send(notif_xpath, notif_dict)
                 self.assertTrue(
                     callback_called.wait(timeout=1),
