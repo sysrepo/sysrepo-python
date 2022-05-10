@@ -130,7 +130,7 @@ class Subscription:
         """
         Called when self.fd becomes readable.
         """
-        check_call(lib.sr_process_events, self.cdata, ffi.NULL, ffi.NULL)
+        check_call(lib.sr_subscription_process_events, self.cdata, ffi.NULL, ffi.NULL)
 
     def task_done(self, task_id: Any, event: str, task: asyncio.Task) -> None:
         """
