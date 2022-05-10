@@ -129,8 +129,6 @@ def _get_error_msg(session) -> Optional[str]:
             for i in range(err_info.err_count):
                 err = err_info.err[i]
                 strings = []
-                if err.xpath:
-                    strings.append(c2str(err.xpath))
                 if err.message:
                     strings.append(c2str(err.message))
                 if strings:
