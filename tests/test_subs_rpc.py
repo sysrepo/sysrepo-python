@@ -21,17 +21,15 @@ sysrepo.configure_logging(stderr_level=logging.ERROR)
 class RpcSubscriptionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with sysrepo.SysrepoConnection() as conn:
-            conn.install_module(YANG_FILE, enabled_features=["turbo"])
-        cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
+        cls.conn = sysrepo.SysrepoConnection()
+        cls.conn.install_module(YANG_FILE, enabled_features=["turbo"])
 
     @classmethod
     def tearDownClass(cls):
-        cls.conn.remove_module("sysrepo-example")
+        # we have to disconnect first to release all resources
         cls.conn.disconnect()
-        # reconnect to make sure module is removed
-        with sysrepo.SysrepoConnection(err_on_sched_fail=True):
-            pass
+        with sysrepo.SysrepoConnection() as c:
+            c.remove_module("sysrepo-example")
 
     def test_rpc_sub(self):
         priv = object()
@@ -149,7 +147,7 @@ class RpcSubscriptionTest(unittest.TestCase):
             self.assertIn("user", kwargs)
             self.assertEqual(getpass.getuser(), kwargs["user"])
             self.assertIn("netconf_id", kwargs)
-            self.assertIsInstance(kwargs["netconf_id"], int)
+            self.assertEqual(kwargs["netconf_id"], 12)
             calls.append((xpath, input_params, event, private_data))
             return {"message": "bye bye"}
 
@@ -159,6 +157,7 @@ class RpcSubscriptionTest(unittest.TestCase):
             )
 
             with self.conn.start_session() as rpc_sess:
+                rpc_sess.set_extra_info("netopeer2", 12, getpass.getuser())
                 output = rpc_sess.rpc_send(rpc_xpath, {"behaviour": "success"})
                 self.assertEqual(len(calls), 1)
                 self.assertEqual(output, {"message": "bye bye"})

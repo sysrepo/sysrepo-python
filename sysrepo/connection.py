@@ -1,6 +1,7 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+from contextlib import contextmanager
 import logging
 import signal
 from typing import Optional, Sequence
@@ -35,31 +36,19 @@ class SysrepoConnection:
 
     __slots__ = ("cdata",)
 
-    def __init__(
-        self,
-        cache_running: bool = False,
-        no_sched_changes: bool = False,
-        err_on_sched_fail: bool = False,
-    ):
+    def __init__(self, cache_running: bool = False):
         """
         :arg cache_running:
             Always cache running datastore data which makes mainly repeated retrieval of
             data much faster. Affects all sessions created on this connection.
-        :arg no_sched_changes:
-            Do not parse internal modules data and apply any scheduled changes. Makes
-            creating the connection faster but, obviously, scheduled changes are not
-            applied.
-        :arg err_on_sched_fail:
-            If applying any of the scheduled changes fails, do not create a connection
-            and return an error.
         """
         flags = 0
         if cache_running:
             flags |= lib.SR_CONN_CACHE_RUNNING
-        if no_sched_changes:
-            flags |= lib.SR_CONN_NO_SCHED_CHANGES
-        if err_on_sched_fail:
-            flags |= lib.SR_CONN_ERR_ON_SCHED_FAIL
+
+        # mandatory flag to work with libyang-python
+        flags |= lib.SR_CONN_CTX_SET_PRIV_PARSED
+
         conn_p = ffi.new("sr_conn_ctx_t **")
         # valid_signals() is only available since python 3.8
         valid_signals = getattr(signal, "valid_signals", lambda: range(1, signal.NSIG))
@@ -114,25 +103,39 @@ class SysrepoConnection:
         check_call(lib.sr_session_start, self.cdata, ds, sess_p)
         return SysrepoSession(sess_p[0])
 
+    def acquire_context(self) -> libyang.Context:
+        """
+        :returns:
+            The `libyang.Context` object associated with this connection.
+        """
+        ctx = lib.sr_acquire_context(self.cdata)
+        if not ctx:
+            raise SysrepoInternalError("sr_get_context failed")
+        return libyang.Context(cdata=ctx)
+
+    def release_context(self):
+        lib.sr_release_context(self.cdata)
+
+    @contextmanager
     def get_ly_ctx(self) -> libyang.Context:
         """
         :returns:
             The `libyang.Context` object associated with this connection.
         """
-        ctx = lib.sr_get_context(self.cdata)
-        if not ctx:
-            raise SysrepoInternalError("sr_get_context failed")
-        return libyang.Context(cdata=ctx)
+        try:
+            yield self.acquire_context()
+        finally:
+            self.release_context()
 
     def install_module(
         self,
         filepath: str,
         searchdirs: Optional[str] = None,
         enabled_features: Sequence[str] = (),
+        ignore_already_exists=True,
     ) -> None:
         """
-        Install a new schema (module) into sysrepo. Deferred until there are no
-        connections!
+        Install a new schema (module) into sysrepo.
 
         :arg filepath:
             Path to the new schema. Can have either YANG or YIN extension/format.
@@ -141,22 +144,29 @@ class SysrepoConnection:
             `<dir>[:<dir>]*`.
         :arg enabled_features:
             Array of enabled features.
+        :arg ignore_already_exists:
+            Ignore error if module already exists in sysrepo.
         """
         if enabled_features:
             # convert to C strings array
-            features = tuple(str2c(f) for f in enabled_features)
+            features = tuple([str2c(f) for f in enabled_features] + [ffi.NULL])
         else:
             features = ffi.NULL
+
+        if ignore_already_exists:
+            valid_codes = (lib.SR_ERR_OK, lib.SR_ERR_EXISTS)
+        else:
+            valid_codes = (lib.SR_ERR_OK,)
         check_call(
             lib.sr_install_module,
             self.cdata,
             str2c(filepath),
             str2c(searchdirs),
             features,
-            len(enabled_features),
+            valid_codes=valid_codes,
         )
 
-    def remove_module(self, name: str) -> None:
+    def remove_module(self, name: str, force: bool = False) -> None:
         """
         Remove an installed module from sysrepo. Deferred until there are no
         connections!
@@ -164,4 +174,4 @@ class SysrepoConnection:
         :arg str name:
             Name of the module to remove.
         """
-        check_call(lib.sr_remove_module, self.cdata, str2c(name))
+        check_call(lib.sr_remove_module, self.cdata, str2c(name), force)

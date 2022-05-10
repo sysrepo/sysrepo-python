@@ -90,41 +90,37 @@ def main():
 
     try:
         with sysrepo.SysrepoConnection() as conn:
-            ctx = conn.get_ly_ctx()
             with conn.start_session(args.datastore) as sess:
                 if args.import_:
-                    data = ctx.parse_data_mem(
-                        sys.stdin.read(),
-                        args.format,
-                        config=True,
-                        strict=not args.not_strict,
-                    )
-                    sess.replace_config_ly(data, args.import_)
+                    with conn.get_ly_ctx() as ctx:
+                        data = ctx.parse_data_mem(
+                            sys.stdin.read(),
+                            args.format,
+                            no_state=True,
+                            strict=not args.not_strict,
+                        )
+                        sess.replace_config_ly(data, args.import_)
 
                 elif args.export:
-                    data = sess.get_data_ly(args.export)
-                    try:
+                    with sess.get_data_ly(args.export) as data:
                         data.print_file(
                             sys.stdout, args.format, pretty=True, with_siblings=True
                         )
-                    finally:
-                        data.free()
 
                 elif args.rpc:
-                    rpc_input = ctx.parse_data_mem(
-                        sys.stdin.read(),
-                        args.format,
-                        rpc=True,
-                        strict=not args.not_strict,
-                    )
-                    try:
-                        rpc_output = sess.rpc_send_ly(rpc_input)
-                    finally:
-                        rpc_input.free()
-                    try:
-                        rpc_output.print_file(sys.stdout, args.format, pretty=True)
-                    finally:
-                        rpc_output.free()
+                    with conn.get_ly_ctx() as ctx:
+                        rpc_input = ctx.parse_data_mem(
+                            sys.stdin.read(),
+                            args.format,
+                            strict=not args.not_strict,
+                        )
+                        with sess.rpc_send_ly(rpc_input) as rpc_output:
+                            try:
+                                rpc_output.print_file(
+                                    sys.stdout, args.format, pretty=True
+                                )
+                            finally:
+                                rpc_input.free()
 
         return 0
     except sysrepo.SysrepoError as e:

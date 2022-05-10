@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import datetime
-import distutils.file_util
 import os
 import re
 import subprocess
@@ -80,7 +79,7 @@ def get_version_from_archive_id(git_archive_id="$Format:%ct %d$"):
     # archived revision is not tagged, use the commit date
     tstamp = git_archive_id.strip().split()[0]
     d = datetime.datetime.utcfromtimestamp(int(tstamp))
-    return d.strftime("0.%Y.%m.%d")
+    return d.strftime("1.%Y.%m.%d")
 
 
 # ------------------------------------------------------------------------------
@@ -112,16 +111,21 @@ def get_version():
     except Exception:
         pass
 
-    return "0.999999.999999"
+    return "1.999999.999999"
 
 
 # ------------------------------------------------------------------------------
 class SDistCommand(setuptools.command.sdist.sdist):
+    def write_lines(self, file, lines):
+        with open(file, "w", encoding="utf-8") as f:
+            for line in lines:
+                f.write(line + "\n")
+
     def make_release_tree(self, base_dir, files):
         super().make_release_tree(base_dir, files)
         version_file = os.path.join(base_dir, "sysrepo/VERSION")
         self.execute(
-            distutils.file_util.write_file,
+            self.write_lines,
             (version_file, [self.distribution.metadata.version]),
             "Writing %s" % version_file,
         )
@@ -154,7 +158,7 @@ setuptools.setup(
         'cffi; platform_python_implementation != "PyPy"',
     ],
     install_requires=[
-        "libyang>=1.7.0,<2",
+        "libyang>=2.1",
         'cffi; platform_python_implementation != "PyPy"',
     ],
     cffi_modules=["cffi/build.py:BUILDER"],

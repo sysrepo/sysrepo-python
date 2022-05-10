@@ -19,17 +19,15 @@ sysrepo.configure_logging(stderr_level=logging.ERROR)
 class OperSubscriptionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with sysrepo.SysrepoConnection() as conn:
-            conn.install_module(YANG_FILE, enabled_features=["turbo"])
-        cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
+        cls.conn = sysrepo.SysrepoConnection()
+        cls.conn.install_module(YANG_FILE, enabled_features=["turbo"])
 
     @classmethod
     def tearDownClass(cls):
-        cls.conn.remove_module("sysrepo-example")
+        # we have to disconnect first to release all resources
         cls.conn.disconnect()
-        # reconnect to make sure module is removed
-        with sysrepo.SysrepoConnection(err_on_sched_fail=True):
-            pass
+        with sysrepo.SysrepoConnection() as c:
+            c.remove_module("sysrepo-example")
 
     def setUp(self):
         self.sess = self.conn.start_session()
@@ -85,7 +83,7 @@ class OperSubscriptionTest(unittest.TestCase):
             self.assertIn("user", kwargs)
             self.assertEqual(getpass.getuser(), kwargs["user"])
             self.assertIn("netconf_id", kwargs)
-            self.assertIsInstance(kwargs["netconf_id"], int)
+            self.assertEqual(kwargs["netconf_id"], 12)
             calls.append((xpath, private_data, kwargs))
             return {"state": {}}
 
@@ -99,6 +97,9 @@ class OperSubscriptionTest(unittest.TestCase):
         )
 
         with self.conn.start_session("operational") as op_sess:
-            oper_data = op_sess.get_data("/sysrepo-example:state")
+            op_sess.set_extra_info("netopeer2", 12, getpass.getuser())
+            oper_data = op_sess.get_data(
+                "/sysrepo-example:state", keep_empty_containers=True
+            )
             self.assertEqual(len(calls), 1)
             self.assertEqual(oper_data, {"state": {}})

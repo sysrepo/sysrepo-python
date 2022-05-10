@@ -130,7 +130,7 @@ class Subscription:
         """
         Called when self.fd becomes readable.
         """
-        check_call(lib.sr_process_events, self.cdata, ffi.NULL, ffi.NULL)
+        check_call(lib.sr_subscription_process_events, self.cdata, ffi.NULL, ffi.NULL)
 
     def task_done(self, task_id: Any, event: str, task: asyncio.Task) -> None:
         """
@@ -170,14 +170,14 @@ NOTIF_TYPES = {
     lib.SR_EV_NOTIF_REALTIME: "realtime",
     lib.SR_EV_NOTIF_REPLAY: "replay",
     lib.SR_EV_NOTIF_REPLAY_COMPLETE: "replay_complete",
-    lib.SR_EV_NOTIF_STOP: "stop",
+    lib.SR_EV_NOTIF_TERMINATED: "terminated",
     lib.SR_EV_NOTIF_SUSPENDED: "suspended",
     lib.SR_EV_NOTIF_RESUMED: "resumed",
 }
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_module_change_cb")
-def module_change_callback(session, module, xpath, event, req_id, priv):
+def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
     """
     Callback to be called on the event of changing datastore content of the specified
     module.
@@ -188,6 +188,8 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop) with information about the changed data.
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "const char *" module:
         Name of the module where the change has occurred.
     :arg "const char *" xpath:
@@ -281,7 +283,7 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             and isinstance(session, SysrepoSession)
             and isinstance(xpath, str)
         ):
-            session.set_error(xpath, e.msg)
+            session.set_error(e.msg)
         return e.rc
 
     except BaseException as e:
@@ -294,18 +296,20 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
             and isinstance(session, SysrepoSession)
             and isinstance(xpath, str)
         ):
-            session.set_error(xpath, str(e))
+            session.set_error(str(e))
         return lib.SR_ERR_CALLBACK_FAILED
 
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_oper_data_cb")
-def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
+def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent, priv):
     """
     Callback to be called when operational data at the selected xpath are requested.
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop).
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "const char *" module:
         Name of the affected module.
     :arg "const char *" xpath:
@@ -375,18 +379,18 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
 
         if isinstance(oper_data, dict):
             # convert oper_data to a libyang.DNode object
-            ly_ctx = session.get_ly_ctx()
-            dnode = ly_ctx.get_module(module).parse_data_dict(
-                oper_data, data=True, strict=subscription.strict, validate=False
-            )
-            if dnode is not None:
-                if parent[0]:
-                    root = DNode.new(ly_ctx, parent[0]).root()
-                    root.merge(dnode, destruct=True)
-                else:
-                    # The FFI bindings of libyang and sysrepo are different.
-                    # Casting is required.
-                    parent[0] = ffi.cast("struct lyd_node *", dnode.cdata)
+            with session.get_ly_ctx() as ly_ctx:
+                dnode = ly_ctx.get_module(module).parse_data_dict(
+                    oper_data, strict=subscription.strict, validate=False
+                )
+                if dnode is not None:
+                    if parent[0]:
+                        root = DNode.new(ly_ctx, parent[0]).root()
+                        root.merge(dnode, destruct=True)
+                    else:
+                        # The FFI bindings of libyang and sysrepo are different.
+                        # Casting is required.
+                        parent[0] = ffi.cast("struct lyd_node *", dnode.cdata)
         elif oper_data is not None:
             raise TypeError(
                 "bad return type from %s (expected dict or None)" % callback
@@ -396,7 +400,7 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
 
     except SysrepoError as e:
         if e.msg and isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, e.msg)
+            session.set_error(e.msg)
         return e.rc
 
     except BaseException as e:
@@ -405,18 +409,20 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, str(e))
+            session.set_error(str(e))
         return lib.SR_ERR_CALLBACK_FAILED
 
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_rpc_tree_cb")
-def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
+def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node, priv):
     """
     Callback to be called for the delivery of an RPC/action.
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop).
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "const char *" xpath:
         Simple operation path identifying the RPC/action.
     :arg "const struct lyd_node *" input_node:
@@ -448,18 +454,20 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         callback = subscription.callback
         private_data = subscription.private_data
         event_name = EVENT_NAMES[event]
-        ly_ctx = session.get_ly_ctx()
-        rpc_input = DNode.new(ly_ctx, input_node)
-        xpath = rpc_input.path()
-        # strip all parents, only preserve the input tree
-        input_dict = next(
-            iter(
-                rpc_input.print_dict(
-                    include_implicit_defaults=subscription.include_implicit_defaults,
-                    absolute=False,
-                ).values()
+
+        with session.get_ly_ctx() as ly_ctx:
+            rpc_input = DNode.new(ly_ctx, input_node)
+            xpath = rpc_input.path()
+            # strip all parents, only preserve the input tree
+            input_dict = next(
+                iter(
+                    rpc_input.print_dict(
+                        include_implicit_defaults=subscription.include_implicit_defaults,
+                        absolute=False,
+                    ).values()
+                )
             )
-        )
+
         if subscription.extra_info:
             extra_info = {
                 "netconf_id": session.get_netconf_id(),
@@ -503,9 +511,13 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
         if isinstance(output_dict, dict):
             # update output_node with contents of output_dict
-            DNode.new(ly_ctx, output_node).merge_data_dict(
-                output_dict, rpcreply=True, strict=subscription.strict, validate=False
-            )
+            with session.get_ly_ctx() as ly_ctx:
+                DNode.new(ly_ctx, output_node).merge_data_dict(
+                    output_dict,
+                    rpcreply=True,
+                    strict=subscription.strict,
+                    validate=False,
+                )
         elif output_dict is not None:
             raise TypeError(
                 "bad return type from %s (expected dict or None)" % callback
@@ -515,7 +527,7 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
     except SysrepoError as e:
         if e.msg and isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, e.msg)
+            session.set_error(e.msg)
         return e.rc
 
     except BaseException as e:
@@ -524,23 +536,25 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(xpath, str(e))
+            session.set_error(str(e))
         return lib.SR_ERR_CALLBACK_FAILED
 
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_event_notif_tree_cb")
-def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
+def event_notif_tree_callback(session, sub_id, notif_type, notif, timestamp, priv):
     """
     Callback to be called when a notification is received.
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop).
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "sr_ev_notif_type_t" notif_type:
         Type of the notification event that has occurred.
     :arg "const struct lyd_node *" notif:
         Data tree of input parameters.
-    :arg "uint32_t" timestamp:
+    :arg "struct timespec*" timestamp:
         Timestamp of the notification.
     :arg "void *" priv:
         Private context opaque to sysrepo. Contains a CFFI handle to the Subscription
@@ -554,26 +568,30 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
         catch all errors and log them so they are not lost.
     """
     try:
+        notif_type = NOTIF_TYPES[notif_type]
+        if notif_type == "terminated" or notif == ffi.NULL:
+            return
+
         # convert C arguments to python objects.
         from .session import SysrepoSession  # circular import
 
+        timestamp = timestamp.tv_sec
         session = SysrepoSession(session, True)
         subscription = ffi.from_handle(priv)
         callback = subscription.callback
         private_data = subscription.private_data
-        notif_type = NOTIF_TYPES[notif_type]
 
-        ly_ctx = session.get_ly_ctx()
-        notif_dnode = DNode.new(ly_ctx, notif)
-        xpath = notif_dnode.path()
-        notif_dict = next(
-            iter(
-                notif_dnode.print_dict(
-                    include_implicit_defaults=subscription.include_implicit_defaults,
-                    absolute=False,
-                ).values()
+        with session.get_ly_ctx() as ly_ctx:
+            notif_dnode = DNode.new(ly_ctx, notif)
+            xpath = notif_dnode.path()
+            notif_dict = next(
+                iter(
+                    notif_dnode.print_dict(
+                        include_implicit_defaults=subscription.include_implicit_defaults,
+                        absolute=False,
+                    ).values()
+                )
             )
-        )
         if subscription.extra_info:
             extra_info = {
                 "netconf_id": session.get_netconf_id(),

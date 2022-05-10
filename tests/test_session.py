@@ -19,17 +19,13 @@ sysrepo.configure_logging(stderr_level=logging.ERROR)
 class SessionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with sysrepo.SysrepoConnection() as conn:
-            conn.install_module(YANG_FILE, enabled_features=["turbo"])
-        cls.conn = sysrepo.SysrepoConnection(err_on_sched_fail=True)
+        cls.conn = sysrepo.SysrepoConnection()
+        cls.conn.install_module(YANG_FILE, enabled_features=["turbo"])
 
     @classmethod
     def tearDownClass(cls):
         cls.conn.remove_module("sysrepo-example")
         cls.conn.disconnect()
-        # reconnect to make sure module is removed
-        with sysrepo.SysrepoConnection(err_on_sched_fail=True):
-            pass
 
     def test_session_switch_ds(self):
         with self.conn.start_session("running") as sess:
@@ -45,8 +41,8 @@ class SessionTest(unittest.TestCase):
 
     def test_session_get_ly_ctx(self):
         with self.conn.start_session() as sess:
-            ctx = sess.get_ly_ctx()
-            mod = ctx.get_module("sysrepo-example")
+            with sess.get_ly_ctx() as ctx:
+                mod = ctx.get_module("sysrepo-example")
             self.assertTrue(mod.implemented)
 
     def test_session_get_data(self):
