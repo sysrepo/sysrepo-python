@@ -559,7 +559,7 @@ def event_notif_tree_callback(session, sub_id, notif_type, notif, timestamp, pri
     """
     try:
         notif_type = NOTIF_TYPES[notif_type]
-        if notif_type == 'terminated' or notif == ffi.NULL:
+        if notif_type == "terminated" or notif == ffi.NULL:
             return
 
         # convert C arguments to python objects.
