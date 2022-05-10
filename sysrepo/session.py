@@ -194,7 +194,7 @@ class SysrepoSession:
         conn = lib.sr_session_get_connection(self.cdata)
         if not conn:
             raise SysrepoInternalError("sr_session_get_connection failed")
-        ctx = lib.sr_get_context(conn)
+        ctx = lib.sr_acquire_context(conn)
         if not ctx:
             raise SysrepoInternalError("sr_get_context failed")
         return libyang.Context(cdata=ctx)
@@ -874,7 +874,7 @@ class SysrepoSession:
             raise ValueError(
                 '"no_*" arguments are only valid for the "operational" datastore'
             )
-        dnode_p = ffi.new("struct lyd_node **")
+        sr_data_p = ffi.new("sr_data_t **")
         check_call(
             lib.sr_get_data,
             self.cdata,
@@ -882,11 +882,11 @@ class SysrepoSession:
             max_depth,
             timeout_ms,
             flags,
-            dnode_p,
+            sr_data_p,
         )
-        if not dnode_p[0]:
+        if not sr_data_p[0]:
             raise SysrepoNotFoundError(xpath)
-        return libyang.DNode.new(self.get_ly_ctx(), dnode_p[0]).root()
+        return libyang.DNode.new(self.get_ly_ctx(), sr_data_p[0].tree).root()
 
     def get_data(
         self,
@@ -898,7 +898,6 @@ class SysrepoSession:
         no_subs: bool = False,
         no_stored: bool = False,
         strip_prefixes: bool = True,
-        include_implicit_defaults: bool = False,
         trim_default_values: bool = False,
         keep_empty_containers: bool = False,
     ) -> Dict:
@@ -907,12 +906,6 @@ class SysrepoSession:
 
         :arg strip_prefixes:
             If True, remove YANG module prefixes from dictionary keys.
-        :arg include_implicit_defaults:
-            Include leaves with implicit default values in the retured dict.
-        :arg trim_default_values:
-            Exclude leaves when their value equals the default.
-        :arg keep_empty_containers:
-            Preserve empty non-presence containers.
 
         :returns:
             A python dictionary generated from the returned struct lyd_node.
@@ -931,7 +924,6 @@ class SysrepoSession:
                 with_siblings=True,
                 absolute=True,
                 strip_prefixes=strip_prefixes,
-                include_implicit_defaults=include_implicit_defaults,
                 trim_default_values=trim_default_values,
                 keep_empty_containers=keep_empty_containers,
             )
@@ -1063,7 +1055,6 @@ class SysrepoSession:
         module_name: str,
         strict: bool = False,
         timeout_ms: int = 0,
-        wait: bool = False,
     ) -> None:
         """
         Same as replace_config() but with a python dictionary.
@@ -1076,8 +1067,8 @@ class SysrepoSession:
         """
         ctx = self.get_ly_ctx()
         module = ctx.get_module(module_name)
-        dnode = module.parse_data_dict(config, edit=True, strict=strict, validate=False)
-        self.replace_config_ly(dnode, module_name, timeout_ms=timeout_ms, wait=wait)
+        dnode = module.parse_data_dict(config, strict=strict, validate=False)
+        self.replace_config_ly(dnode, module_name, timeout_ms=timeout_ms)
 
     def validate(self) -> None:
         """
