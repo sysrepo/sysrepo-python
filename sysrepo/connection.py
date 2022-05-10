@@ -35,31 +35,15 @@ class SysrepoConnection:
 
     __slots__ = ("cdata",)
 
-    def __init__(
-        self,
-        cache_running: bool = False,
-        no_sched_changes: bool = False,
-        err_on_sched_fail: bool = False,
-    ):
+    def __init__(self, cache_running: bool = False):
         """
         :arg cache_running:
             Always cache running datastore data which makes mainly repeated retrieval of
             data much faster. Affects all sessions created on this connection.
-        :arg no_sched_changes:
-            Do not parse internal modules data and apply any scheduled changes. Makes
-            creating the connection faster but, obviously, scheduled changes are not
-            applied.
-        :arg err_on_sched_fail:
-            If applying any of the scheduled changes fails, do not create a connection
-            and return an error.
         """
         flags = 0
         if cache_running:
             flags |= lib.SR_CONN_CACHE_RUNNING
-        if no_sched_changes:
-            flags |= lib.SR_CONN_NO_SCHED_CHANGES
-        if err_on_sched_fail:
-            flags |= lib.SR_CONN_ERR_ON_SCHED_FAIL
         conn_p = ffi.new("sr_conn_ctx_t **")
         # valid_signals() is only available since python 3.8
         valid_signals = getattr(signal, "valid_signals", lambda: range(1, signal.NSIG))
