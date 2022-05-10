@@ -44,6 +44,10 @@ class SysrepoConnection:
         flags = 0
         if cache_running:
             flags |= lib.SR_CONN_CACHE_RUNNING
+
+        # mandatory flag to work with libyang-python
+        flags |= lib.SR_CONN_CTX_SET_PRIV_PARSED
+
         conn_p = ffi.new("sr_conn_ctx_t **")
         # valid_signals() is only available since python 3.8
         valid_signals = getattr(signal, "valid_signals", lambda: range(1, signal.NSIG))
