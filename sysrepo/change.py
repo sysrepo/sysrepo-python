@@ -109,7 +109,7 @@ class Change:
 # ------------------------------------------------------------------------------
 class ChangeCreated(Change):
 
-    __slots__ = Change.__slots__ + ("value", "after")
+    __slots__ = ("value", "after")
 
     def __init__(self, xpath: str, value: Any, after: Optional[str] = None):
         super().__init__(xpath)
@@ -134,7 +134,7 @@ class ChangeCreated(Change):
 # ------------------------------------------------------------------------------
 class ChangeModified(Change):
 
-    __slots__ = Change.__slots__ + ("value", "prev_val", "prev_dflt")
+    __slots__ = ("value", "prev_val", "prev_dflt")
 
     def __init__(self, xpath: str, value: Any, prev_val: str, prev_dflt: bool = False):
         super().__init__(xpath)
@@ -162,7 +162,7 @@ class ChangeDeleted(Change):
 # ------------------------------------------------------------------------------
 class ChangeMoved(Change):
 
-    __slots__ = Change.__slots__ + ("after",)
+    __slots__ = ("after",)
 
     def __init__(self, xpath: str, after: str):
         super().__init__(xpath)
