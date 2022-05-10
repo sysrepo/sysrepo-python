@@ -113,10 +113,10 @@ class SysrepoConnection:
         filepath: str,
         searchdirs: Optional[str] = None,
         enabled_features: Sequence[str] = (),
+        ignore_already_exists = True,
     ) -> None:
         """
-        Install a new schema (module) into sysrepo. Deferred until there are no
-        connections!
+        Install a new schema (module) into sysrepo.
 
         :arg filepath:
             Path to the new schema. Can have either YANG or YIN extension/format.
@@ -125,18 +125,26 @@ class SysrepoConnection:
             `<dir>[:<dir>]*`.
         :arg enabled_features:
             Array of enabled features.
+        :arg ignore_already_exists:
+            Ignore error if module already exists in sysrepo.
         """
         if enabled_features:
             # convert to C strings array
             features = tuple([str2c(f) for f in enabled_features] + [ffi.NULL])
         else:
             features = ffi.NULL
+
+        if ignore_already_exists:
+            valid_codes = (lib.SR_ERR_OK, lib.SR_ERR_EXISTS)
+        else:
+            valid_codes = (lib.SR_ERR_OK, )
         check_call(
             lib.sr_install_module,
             self.cdata,
             str2c(filepath),
             str2c(searchdirs),
             features,
+            valid_codes=valid_codes
         )
 
     def remove_module(self, name: str, force: bool = False) -> None:
