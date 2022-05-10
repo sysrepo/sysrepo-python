@@ -177,7 +177,7 @@ NOTIF_TYPES = {
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_module_change_cb")
-def module_change_callback(session, module, xpath, event, req_id, priv):
+def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
     """
     Callback to be called on the event of changing datastore content of the specified
     module.
@@ -188,6 +188,8 @@ def module_change_callback(session, module, xpath, event, req_id, priv):
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop) with information about the changed data.
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "const char *" module:
         Name of the module where the change has occurred.
     :arg "const char *" xpath:
