@@ -1052,7 +1052,7 @@ class SysrepoSession:
         """
         ctx = self.get_ly_ctx()
         module = ctx.get_module(module_name)
-        dnode = module.parse_data_dict(edit, edit=True, strict=strict, validate=False)
+        dnode = module.parse_data_dict(edit, strict=strict, validate=False)
         if not dnode:
             raise ValueError("provided config dict is empty")
         try:

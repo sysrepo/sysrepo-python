@@ -114,7 +114,6 @@ def main():
                     rpc_input = ctx.parse_data_mem(
                         sys.stdin.read(),
                         args.format,
-                        rpc=True,
                         strict=not args.not_strict,
                     )
                     try:
