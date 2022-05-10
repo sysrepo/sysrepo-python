@@ -45,8 +45,6 @@ typedef struct sr_conn_ctx_s sr_conn_ctx_t;
 typedef struct sr_session_ctx_s sr_session_ctx_t;
 typedef enum sr_conn_flag_e {
 	SR_CONN_CACHE_RUNNING,
-	SR_CONN_NO_SCHED_CHANGES,
-	SR_CONN_ERR_ON_SCHED_FAIL,
 	...
 } sr_conn_flag_t;
 typedef uint32_t sr_conn_options_t;
@@ -71,12 +69,13 @@ typedef struct sr_error_info_s {
 /* forward declarations from libyang */
 struct ly_ctx;
 struct lyd_node;
+struct timespec;
 
 int sr_connect(const sr_conn_options_t, sr_conn_ctx_t **);
 int sr_disconnect(sr_conn_ctx_t *);
-const struct ly_ctx *sr_get_context(sr_conn_ctx_t *);
+const struct ly_ctx *sr_acquire_context(sr_conn_ctx_t *);
 int sr_install_module(sr_conn_ctx_t *, const char *, const char *, const char **);
-int sr_remove_module(sr_conn_ctx_t *, const char *);
+int sr_remove_module(sr_conn_ctx_t *, const char *, int);
 int sr_update_module(sr_conn_ctx_t *, const char *, const char *);
 int sr_enable_module_feature(sr_conn_ctx_t *, const char *, const char *);
 int sr_disable_module_feature(sr_conn_ctx_t *, const char *, const char *);
@@ -91,7 +90,7 @@ int sr_session_set_error_message(sr_session_ctx_t *, const char *, ...);
 const char *sr_session_get_orig_name(sr_session_ctx_t *session);
 int sr_session_get_orig_data(sr_session_ctx_t *session, uint32_t idx, uint32_t *size, const void **data);
 
-typedef enum sr_type_e {
+typedef enum sr_val_type_e {
 	SR_UNKNOWN_T,
 	SR_LIST_T,
 	SR_CONTAINER_T,
@@ -116,8 +115,8 @@ typedef enum sr_type_e {
 	SR_ANYXML_T,
 	SR_ANYDATA_T,
 	...
-} sr_type_t;
-typedef union sr_data_u {
+} sr_val_type_t;
+typedef union sr_val_data_u {
 	char *binary_val;
 	char *bits_val;
 	bool bool_val;
@@ -137,11 +136,11 @@ typedef union sr_data_u {
 	char *anyxml_val;
 	char *anydata_val;
 	...;
-} sr_data_t;
+} sr_val_data_t;
 typedef struct sr_val_s {
     char *xpath;
-    sr_type_t type;
-    sr_data_t data;
+    sr_val_type_t type;
+    sr_val_data_t data;
     ...;
 } sr_val_t;
 typedef enum sr_edit_flag_e {
@@ -160,6 +159,12 @@ typedef enum sr_get_oper_flag_e {
 } sr_get_oper_flag_t;
 typedef uint32_t sr_get_oper_options_t;
 
+struct sr_data_s {
+    const sr_conn_ctx_t *conn;
+    struct lyd_node *tree;
+};
+typedef struct sr_data_s sr_data_t;
+
 void sr_free_val(sr_val_t *);
 void sr_free_values(sr_val_t *, size_t);
 
@@ -167,9 +172,8 @@ int sr_get_item(sr_session_ctx_t *, const char *, uint32_t, sr_val_t **);
 int sr_get_items(sr_session_ctx_t *, const char *, uint32_t,
 	const sr_get_oper_options_t, sr_val_t **, size_t *);
 int sr_get_data(sr_session_ctx_t *, const char *, uint32_t, uint32_t,
-	const sr_get_oper_options_t, struct lyd_node **);
-int sr_rpc_send_tree(
-	sr_session_ctx_t *, struct lyd_node *, uint32_t, struct lyd_node **);
+	const sr_get_oper_options_t, sr_data_t **);
+int sr_rpc_send_tree(sr_session_ctx_t *, struct lyd_node *, uint32_t, sr_data_t **);
 
 int sr_set_item_str(sr_session_ctx_t *, const char *, const char *, const char *, const sr_edit_options_t);
 int sr_delete_item(sr_session_ctx_t *, const char *, const sr_edit_options_t);
@@ -180,7 +184,6 @@ int sr_apply_changes(sr_session_ctx_t *, uint32_t);
 int sr_discard_changes(sr_session_ctx_t *);
 
 typedef enum sr_subscr_flag_e {
-	SR_SUBSCR_CTX_REUSE,
 	SR_SUBSCR_NO_THREAD,
 	SR_SUBSCR_PASSIVE,
 	SR_SUBSCR_DONE_ONLY,
@@ -195,7 +198,7 @@ typedef uint32_t sr_subscr_options_t;
 
 int sr_get_event_pipe(sr_subscription_ctx_t *, int *);
 typedef int... time_t;
-int sr_process_events(sr_subscription_ctx_t *, sr_session_ctx_t *, time_t *);
+int sr_subscription_process_events(sr_subscription_ctx_t *, sr_session_ctx_t *, struct timespec *);
 int sr_unsubscribe(sr_subscription_ctx_t *);
 
 typedef enum sr_event_e {
@@ -245,7 +248,7 @@ int sr_rpc_subscribe_tree(
 extern "Python" int srpy_oper_data_cb(
 	sr_session_ctx_t *, uint32_t sub_id, const char *module, const char *xpath,
 	const char *req_xpath, uint32_t req_id, struct lyd_node **, void *priv);
-int sr_oper_get_items_subscribe(
+int sr_oper_get_subscribe(
 	sr_session_ctx_t *, const char *module, const char *xpath,
 	int (*)(sr_session_ctx_t *, uint32_t, const char *, const char *, const char *, uint32_t, struct lyd_node **, void *),
 	void *priv, sr_subscr_options_t, sr_subscription_ctx_t **);
@@ -264,8 +267,8 @@ extern "Python" void srpy_event_notif_tree_cb(
 	sr_session_ctx_t *, uint32_t sub_id, const sr_ev_notif_type_t notif_type, const struct lyd_node *notif,
 	time_t timestamp, void *priv);
 
-int sr_event_notif_subscribe_tree(sr_session_ctx_t *, const char *module_name, const char *xpath, time_t start_time, time_t stop_time,
+int sr_notif_subscribe_tree(sr_session_ctx_t *, const char *module_name, const char *xpath, struct timespec *start_time, struct timespec *stop_time,
 	void (*)(sr_session_ctx_t *, uint32_t, const sr_ev_notif_type_t, const struct lyd_node*, struct timespec*, void*),
 	void *priv, sr_subscr_options_t, sr_subscription_ctx_t **);
 
-int sr_event_notif_send_tree(sr_session_ctx_t *, struct lyd_node *notif, uint32_t timeout_ms, int wait);
+int sr_notif_send_tree(sr_session_ctx_t *, struct lyd_node *notif, uint32_t timeout_ms, int wait);
