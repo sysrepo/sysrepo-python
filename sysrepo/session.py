@@ -66,12 +66,6 @@ class SysrepoSession:
         if self.is_implicit:
             raise SysrepoUnsupportedError("implicit sessions cannot be stopped")
 
-        # clear contexts
-        conn = lib.sr_session_get_connection(self.cdata)
-        for _ in range(self.num_contexts):
-            lib.sr_release_context(conn)
-        self.num_contexts = 0
-
         # clear subscriptions
         while self.subscriptions:
             sub = self.subscriptions.pop()
@@ -79,6 +73,14 @@ class SysrepoSession:
                 sub.unsubscribe()
             except Exception:
                 LOG.exception("Subscription.unsubscribe failed")
+
+        # clear contexts
+        conn = lib.sr_session_get_connection(self.cdata)
+        for _ in range(self.num_contexts):
+            lib.sr_release_context(conn)
+        self.num_contexts = 0
+
+        # stop session
         try:
             check_call(lib.sr_session_stop, self.cdata)
         finally:
@@ -708,7 +710,7 @@ class SysrepoSession:
         node_p = ffi.new("struct lyd_node **")
         prev_val_p = ffi.new("char **")
         prev_list_p = ffi.new("char **")
-        prev_dflt_p = ffi.new("bool *")
+        prev_dflt_p = ffi.new("int *")
         ctx = self.get_ly_ctx()
 
         try:
