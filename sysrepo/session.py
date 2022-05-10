@@ -443,7 +443,7 @@ class SysrepoSession:
         flags = _subscribe_flags(no_thread=no_thread)
 
         check_call(
-            lib.sr_oper_get_items_subscribe,
+            lib.sr_oper_get_subscribe,
             self.cdata,
             str2c(module),
             str2c(xpath),

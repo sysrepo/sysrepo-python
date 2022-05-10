@@ -302,12 +302,14 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_oper_data_cb")
-def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
+def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent, priv):
     """
     Callback to be called when operational data at the selected xpath are requested.
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop).
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "const char *" module:
         Name of the affected module.
     :arg "const char *" xpath:
@@ -379,7 +381,7 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
             # convert oper_data to a libyang.DNode object
             ly_ctx = session.get_ly_ctx()
             dnode = ly_ctx.get_module(module).parse_data_dict(
-                oper_data, data=True, strict=subscription.strict, validate=False
+                oper_data, strict=subscription.strict, validate=False
             )
             if dnode is not None:
                 if parent[0]:
@@ -413,12 +415,14 @@ def oper_data_callback(session, module, xpath, req_xpath, req_id, parent, priv):
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_rpc_tree_cb")
-def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
+def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node, priv):
     """
     Callback to be called for the delivery of an RPC/action.
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop).
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "const char *" xpath:
         Simple operation path identifying the RPC/action.
     :arg "const struct lyd_node *" input_node:
