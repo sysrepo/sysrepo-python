@@ -33,7 +33,7 @@ class SysrepoSession:
         Do not instantiate this class manually, use `SysrepoConnection.start_session`.
     """
 
-    __slots__ = ("cdata", "is_implicit", "subscriptions")
+    __slots__ = ("cdata", "is_implicit", "subscriptions", "num_contexts")
 
     # begin: general
     def __init__(self, cdata, implicit: bool = False):
@@ -46,6 +46,7 @@ class SysrepoSession:
         self.cdata = cdata
         self.is_implicit = implicit
         self.subscriptions = []
+        self.num_contexts = 0
 
     def __enter__(self) -> "SysrepoSession":
         return self
@@ -64,6 +65,14 @@ class SysrepoSession:
             return  # already stopped
         if self.is_implicit:
             raise SysrepoUnsupportedError("implicit sessions cannot be stopped")
+
+        # clear contexts
+        conn = lib.sr_session_get_connection(self.cdata)
+        for _ in range(self.num_contexts):
+            lib.sr_release_context(conn)
+        self.num_contexts = 0
+
+        # clear subscriptions
         while self.subscriptions:
             sub = self.subscriptions.pop()
             try:
@@ -195,6 +204,7 @@ class SysrepoSession:
         if not conn:
             raise SysrepoInternalError("sr_session_get_connection failed")
         ctx = lib.sr_acquire_context(conn)
+        self.num_contexts += 1
         if not ctx:
             raise SysrepoInternalError("sr_get_context failed")
         return libyang.Context(cdata=ctx)
@@ -886,7 +896,10 @@ class SysrepoSession:
         )
         if not sr_data_p[0]:
             raise SysrepoNotFoundError(xpath)
-        return libyang.DNode.new(self.get_ly_ctx(), sr_data_p[0].tree).root()
+        dnode = libyang.DNode.new(self.get_ly_ctx(), sr_data_p[0].tree).root()
+        # customize the free method to use the sysrepo free
+        dnode.free = lambda: lib.sr_release_data(sr_data_p[0])
+        return dnode
 
     def get_data(
         self,

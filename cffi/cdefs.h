@@ -74,6 +74,7 @@ struct timespec;
 int sr_connect(const sr_conn_options_t, sr_conn_ctx_t **);
 int sr_disconnect(sr_conn_ctx_t *);
 const struct ly_ctx *sr_acquire_context(sr_conn_ctx_t *);
+void sr_release_context(sr_conn_ctx_t *);
 int sr_install_module(sr_conn_ctx_t *, const char *, const char *, const char **);
 int sr_remove_module(sr_conn_ctx_t *, const char *, int);
 int sr_update_module(sr_conn_ctx_t *, const char *, const char *);
@@ -173,6 +174,7 @@ int sr_get_items(sr_session_ctx_t *, const char *, uint32_t,
 	const sr_get_oper_options_t, sr_val_t **, size_t *);
 int sr_get_data(sr_session_ctx_t *, const char *, uint32_t, uint32_t,
 	const sr_get_oper_options_t, sr_data_t **);
+void sr_release_data(sr_data_t *);
 int sr_rpc_send_tree(sr_session_ctx_t *, struct lyd_node *, uint32_t, sr_data_t **);
 
 int sr_set_item_str(sr_session_ctx_t *, const char *, const char *, const char *, const sr_edit_options_t);
