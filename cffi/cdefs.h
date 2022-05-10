@@ -69,7 +69,11 @@ typedef struct sr_error_info_s {
 /* forward declarations from libyang */
 struct ly_ctx;
 struct lyd_node;
-struct timespec;
+typedef int... time_t;
+struct timespec {
+    time_t tv_sec;
+    long tv_nsec;
+};
 
 int sr_connect(const sr_conn_options_t, sr_conn_ctx_t **);
 int sr_disconnect(sr_conn_ctx_t *);
@@ -201,7 +205,6 @@ typedef struct sr_subscription_ctx_s sr_subscription_ctx_t;
 typedef uint32_t sr_subscr_options_t;
 
 int sr_get_event_pipe(sr_subscription_ctx_t *, int *);
-typedef int... time_t;
 int sr_subscription_process_events(sr_subscription_ctx_t *, sr_session_ctx_t *, struct timespec *);
 int sr_unsubscribe(sr_subscription_ctx_t *);
 
@@ -269,7 +272,7 @@ typedef enum sr_ev_notif_type_e {
 
 extern "Python" void srpy_event_notif_tree_cb(
 	sr_session_ctx_t *, uint32_t sub_id, const sr_ev_notif_type_t notif_type, const struct lyd_node *notif,
-	time_t timestamp, void *priv);
+	struct timespec* timestamp, void *priv);
 
 int sr_notif_subscribe_tree(sr_session_ctx_t *, const char *module_name, const char *xpath, struct timespec *start_time, struct timespec *stop_time,
 	void (*)(sr_session_ctx_t *, uint32_t, const sr_ev_notif_type_t, const struct lyd_node*, struct timespec*, void*),

@@ -170,7 +170,7 @@ NOTIF_TYPES = {
     lib.SR_EV_NOTIF_REALTIME: "realtime",
     lib.SR_EV_NOTIF_REPLAY: "replay",
     lib.SR_EV_NOTIF_REPLAY_COMPLETE: "replay_complete",
-    lib.SR_EV_NOTIF_TERMINATED: "stop",
+    lib.SR_EV_NOTIF_TERMINATED: "terminated",
     lib.SR_EV_NOTIF_SUSPENDED: "suspended",
     lib.SR_EV_NOTIF_RESUMED: "resumed",
 }
@@ -532,17 +532,19 @@ def rpc_callback(session, xpath, input_node, event, req_id, output_node, priv):
 
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_event_notif_tree_cb")
-def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
+def event_notif_tree_callback(session, sub_id, notif_type, notif, timestamp, priv):
     """
     Callback to be called when a notification is received.
 
     :arg "sr_session_ctx_t *" session:
         Implicit session (do not stop).
+    :arg "uint32_t" sub_id:
+        Subscription ID.
     :arg "sr_ev_notif_type_t" notif_type:
         Type of the notification event that has occurred.
     :arg "const struct lyd_node *" notif:
         Data tree of input parameters.
-    :arg "uint32_t" timestamp:
+    :arg "struct timespec*" timestamp:
         Timestamp of the notification.
     :arg "void *" priv:
         Private context opaque to sysrepo. Contains a CFFI handle to the Subscription
@@ -556,14 +558,18 @@ def event_notif_tree_callback(session, notif_type, notif, timestamp, priv):
         catch all errors and log them so they are not lost.
     """
     try:
+        notif_type = NOTIF_TYPES[notif_type]
+        if notif_type == 'terminated' or notif == ffi.NULL:
+            return
+
         # convert C arguments to python objects.
         from .session import SysrepoSession  # circular import
 
+        timestamp = timestamp.tv_sec
         session = SysrepoSession(session, True)
         subscription = ffi.from_handle(priv)
         callback = subscription.callback
         private_data = subscription.private_data
-        notif_type = NOTIF_TYPES[notif_type]
 
         ly_ctx = session.get_ly_ctx()
         notif_dnode = DNode.new(ly_ctx, notif)

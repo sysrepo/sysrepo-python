@@ -693,13 +693,18 @@ class SysrepoSession:
 
         flags = _subscribe_flags(no_thread=no_thread)
 
+        c_start_time = ffi.new("struct timespec *")
+        c_start_time.tv_sec = start_time
+        c_stop_time = ffi.new("struct timespec *")
+        c_stop_time.tv_sec = stop_time
+
         check_call(
-            lib.sr_event_notif_subscribe_tree,
+            lib.sr_notif_subscribe_tree,
             self.cdata,
             str2c(module),
             str2c(xpath),
-            start_time,
-            stop_time,
+            c_start_time,
+            c_stop_time,
             lib.srpy_event_notif_tree_cb,
             sub.handle,
             flags,
@@ -1268,7 +1273,7 @@ class SysrepoSession:
             raise TypeError("notification must be a libyang.DNode")
         # libyang and sysrepo bindings are different, casting is required
         in_dnode = ffi.cast("struct lyd_node *", notification.cdata)
-        check_call(lib.sr_event_notif_send_tree, self.cdata, in_dnode, timeout_ms, wait)
+        check_call(lib.sr_notif_send_tree, self.cdata, in_dnode, timeout_ms, wait)
 
     def notification_send(
         self, xpath: str, notification: Dict, strict: bool = False

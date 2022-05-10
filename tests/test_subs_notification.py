@@ -26,8 +26,10 @@ class NotificationSubscriptionTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.conn.remove_module("sysrepo-example")
+        # we have to disconnect first to release all resources
         cls.conn.disconnect()
+        with sysrepo.SysrepoConnection() as c:
+            c.remove_module("sysrepo-example")
 
     def _test_notification_sub(
         self,
