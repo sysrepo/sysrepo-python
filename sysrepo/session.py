@@ -925,8 +925,12 @@ class SysrepoSession:
         if not sr_data_p[0]:
             raise SysrepoNotFoundError(xpath)
         dnode = libyang.DNode.new(self.get_ly_ctx(), sr_data_p[0].tree).root()
+
         # customize the free method to use the sysrepo free
-        dnode.free = lambda: lib.sr_release_data(sr_data_p[0])
+        def sysrepo_free(cdata):
+            lib.sr_release_data(sr_data_p[0])
+        dnode.free_func = sysrepo_free
+
         return dnode
 
     def get_data(
