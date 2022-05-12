@@ -117,7 +117,7 @@ class SysrepoConnection:
         filepath: str,
         searchdirs: Optional[str] = None,
         enabled_features: Sequence[str] = (),
-        ignore_already_exists = True,
+        ignore_already_exists=True,
     ) -> None:
         """
         Install a new schema (module) into sysrepo.
@@ -141,14 +141,14 @@ class SysrepoConnection:
         if ignore_already_exists:
             valid_codes = (lib.SR_ERR_OK, lib.SR_ERR_EXISTS)
         else:
-            valid_codes = (lib.SR_ERR_OK, )
+            valid_codes = (lib.SR_ERR_OK,)
         check_call(
             lib.sr_install_module,
             self.cdata,
             str2c(filepath),
             str2c(searchdirs),
             features,
-            valid_codes=valid_codes
+            valid_codes=valid_codes,
         )
 
     def remove_module(self, name: str, force: bool = False) -> None:

@@ -929,6 +929,7 @@ class SysrepoSession:
         # customize the free method to use the sysrepo free
         def sysrepo_free(cdata):
             lib.sr_release_data(sr_data_p[0])
+
         dnode.free_func = sysrepo_free
 
         return dnode
