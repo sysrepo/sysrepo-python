@@ -1,6 +1,7 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+from contextlib import contextmanager
 import logging
 import signal
 from typing import Optional, Sequence
@@ -102,7 +103,7 @@ class SysrepoConnection:
         check_call(lib.sr_session_start, self.cdata, ds, sess_p)
         return SysrepoSession(sess_p[0])
 
-    def get_ly_ctx(self) -> libyang.Context:
+    def acquire_context(self) -> libyang.Context:
         """
         :returns:
             The `libyang.Context` object associated with this connection.
@@ -111,6 +112,20 @@ class SysrepoConnection:
         if not ctx:
             raise SysrepoInternalError("sr_get_context failed")
         return libyang.Context(cdata=ctx)
+
+    def release_context(self):
+        lib.sr_release_context(self.cdata)
+
+    @contextmanager
+    def get_ly_ctx(self) -> libyang.Context:
+        """
+        :returns:
+            The `libyang.Context` object associated with this connection.
+        """
+        try:
+            yield self.acquire_context()
+        finally:
+            self.release_context()
 
     def install_module(
         self,

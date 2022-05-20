@@ -379,18 +379,18 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
 
         if isinstance(oper_data, dict):
             # convert oper_data to a libyang.DNode object
-            ly_ctx = session.get_ly_ctx()
-            dnode = ly_ctx.get_module(module).parse_data_dict(
-                oper_data, strict=subscription.strict, validate=False
-            )
-            if dnode is not None:
-                if parent[0]:
-                    root = DNode.new(ly_ctx, parent[0]).root()
-                    root.merge(dnode, destruct=True)
-                else:
-                    # The FFI bindings of libyang and sysrepo are different.
-                    # Casting is required.
-                    parent[0] = ffi.cast("struct lyd_node *", dnode.cdata)
+            with session.get_ly_ctx() as ly_ctx:
+                dnode = ly_ctx.get_module(module).parse_data_dict(
+                    oper_data, strict=subscription.strict, validate=False
+                )
+                if dnode is not None:
+                    if parent[0]:
+                        root = DNode.new(ly_ctx, parent[0]).root()
+                        root.merge(dnode, destruct=True)
+                    else:
+                        # The FFI bindings of libyang and sysrepo are different.
+                        # Casting is required.
+                        parent[0] = ffi.cast("struct lyd_node *", dnode.cdata)
         elif oper_data is not None:
             raise TypeError(
                 "bad return type from %s (expected dict or None)" % callback
@@ -454,18 +454,20 @@ def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node,
         callback = subscription.callback
         private_data = subscription.private_data
         event_name = EVENT_NAMES[event]
-        ly_ctx = session.get_ly_ctx()
-        rpc_input = DNode.new(ly_ctx, input_node)
-        xpath = rpc_input.path()
-        # strip all parents, only preserve the input tree
-        input_dict = next(
-            iter(
-                rpc_input.print_dict(
-                    include_implicit_defaults=subscription.include_implicit_defaults,
-                    absolute=False,
-                ).values()
+
+        with session.get_ly_ctx() as ly_ctx:
+            rpc_input = DNode.new(ly_ctx, input_node)
+            xpath = rpc_input.path()
+            # strip all parents, only preserve the input tree
+            input_dict = next(
+                iter(
+                    rpc_input.print_dict(
+                        include_implicit_defaults=subscription.include_implicit_defaults,
+                        absolute=False,
+                    ).values()
+                )
             )
-        )
+
         if subscription.extra_info:
             extra_info = {
                 "netconf_id": session.get_netconf_id(),
@@ -509,9 +511,13 @@ def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node,
 
         if isinstance(output_dict, dict):
             # update output_node with contents of output_dict
-            DNode.new(ly_ctx, output_node).merge_data_dict(
-                output_dict, rpcreply=True, strict=subscription.strict, validate=False
-            )
+            with session.get_ly_ctx() as ly_ctx:
+                DNode.new(ly_ctx, output_node).merge_data_dict(
+                    output_dict,
+                    rpcreply=True,
+                    strict=subscription.strict,
+                    validate=False,
+                )
         elif output_dict is not None:
             raise TypeError(
                 "bad return type from %s (expected dict or None)" % callback
@@ -575,17 +581,17 @@ def event_notif_tree_callback(session, sub_id, notif_type, notif, timestamp, pri
         callback = subscription.callback
         private_data = subscription.private_data
 
-        ly_ctx = session.get_ly_ctx()
-        notif_dnode = DNode.new(ly_ctx, notif)
-        xpath = notif_dnode.path()
-        notif_dict = next(
-            iter(
-                notif_dnode.print_dict(
-                    include_implicit_defaults=subscription.include_implicit_defaults,
-                    absolute=False,
-                ).values()
+        with session.get_ly_ctx() as ly_ctx:
+            notif_dnode = DNode.new(ly_ctx, notif)
+            xpath = notif_dnode.path()
+            notif_dict = next(
+                iter(
+                    notif_dnode.print_dict(
+                        include_implicit_defaults=subscription.include_implicit_defaults,
+                        absolute=False,
+                    ).values()
+                )
             )
-        )
         if subscription.extra_info:
             extra_info = {
                 "netconf_id": session.get_netconf_id(),

@@ -50,6 +50,6 @@ class ConnectionTest(unittest.TestCase):
         with sysrepo.SysrepoConnection() as conn:
             conn.remove_module("sysrepo-example")
         with sysrepo.SysrepoConnection() as conn:
-            ctx = conn.get_ly_ctx()
-            with self.assertRaises(libyang.LibyangError):
-                ctx.get_module("sysrepo-example")
+            with conn.get_ly_ctx() as ctx:
+                with self.assertRaises(libyang.LibyangError):
+                    ctx.get_module("sysrepo-example")

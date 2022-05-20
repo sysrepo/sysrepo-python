@@ -41,8 +41,8 @@ class SessionTest(unittest.TestCase):
 
     def test_session_get_ly_ctx(self):
         with self.conn.start_session() as sess:
-            ctx = sess.get_ly_ctx()
-            mod = ctx.get_module("sysrepo-example")
+            with sess.get_ly_ctx() as ctx:
+                mod = ctx.get_module("sysrepo-example")
             self.assertTrue(mod.implemented)
 
     def test_session_get_data(self):
