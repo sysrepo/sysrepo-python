@@ -141,7 +141,7 @@ def _get_error_msg(session) -> Optional[str]:
 def check_call(
     func: Callable[..., int],
     *args: Any,
-    valid_codes: Tuple[int, ...] = (lib.SR_ERR_OK,)
+    valid_codes: Tuple[int, ...] = (lib.SR_ERR_OK,),
 ) -> int:
     """
     Wrapper around functions of libsysrepo.so.

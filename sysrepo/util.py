@@ -62,7 +62,7 @@ def configure_logging(
     stderr_level: int = logging.NOTSET,
     syslog_level: int = logging.NOTSET,
     syslog_app_name: str = "sysrepo",
-    py_logging: bool = False
+    py_logging: bool = False,
 ):
     """
     Configure logging for sysrepo. By default, all logging is disabled.

@@ -293,7 +293,7 @@ class SysrepoSession:
         private_data: Any = None,
         asyncio_register: bool = False,
         include_implicit_defaults: bool = True,
-        extra_info: bool = False
+        extra_info: bool = False,
     ) -> None:
         """
         Subscribe for changes made in the specified module.
@@ -404,7 +404,7 @@ class SysrepoSession:
         private_data: Any = None,
         asyncio_register: bool = False,
         strict: bool = False,
-        extra_info: bool = False
+        extra_info: bool = False,
     ) -> None:
         """
         Register for providing operational data at the given xpath.
@@ -541,7 +541,7 @@ class SysrepoSession:
         asyncio_register: bool = False,
         strict: bool = False,
         include_implicit_defaults: bool = True,
-        extra_info: bool = False
+        extra_info: bool = False,
     ) -> None:
         """
         Subscribe for the delivery of an RPC/action.
@@ -653,7 +653,7 @@ class SysrepoSession:
         no_thread: bool = False,
         asyncio_register: bool = False,
         private_data: Any = None,
-        extra_info: bool = False
+        extra_info: bool = False,
     ) -> None:
         """
         Subscribe for the delivery of a notification.

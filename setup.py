@@ -152,7 +152,7 @@ setuptools.setup(
         "Topic :: Software Development :: Libraries",
     ],
     packages=["sysrepo"],
-    python_requires=">=3.5",
+    python_requires=">=3.6",
     setup_requires=[
         "setuptools",
         'cffi; platform_python_implementation != "PyPy"',
