@@ -175,3 +175,16 @@ class SysrepoConnection:
             Name of the module to remove.
         """
         check_call(lib.sr_remove_module, self.cdata, str2c(name), force)
+
+    def enable_module_feature(self, name: str, feature_name: str) -> None:
+        """
+        Enable a module feature.
+
+        :arg str name:
+            Name of the module.
+        :arg str feature_name:
+            Name of the feature.
+        """
+        check_call(
+            lib.sr_enable_module_feature, self.cdata, str2c(name), str2c(feature_name)
+        )

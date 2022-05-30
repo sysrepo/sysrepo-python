@@ -46,6 +46,18 @@ class ConnectionTest(unittest.TestCase):
         with sysrepo.SysrepoConnection() as conn:
             conn.install_module(YANG_FILE, enabled_features=["turbo"])
 
+    def test_conn_enable_module_feature(self):
+        with sysrepo.SysrepoConnection() as conn:
+            conn.install_module(YANG_FILE)
+            conn.enable_module_feature("sysrepo-example", "turbo")
+            with conn.start_session("operational") as sess:
+                data = sess.get_data("/ietf-yang-library:*")
+                data = data["yang-library"]["module-set"]
+                data = next(iter(data))
+                data = data["module"]
+                data = [x for x in data if x["name"] == "sysrepo-example"][0]
+                self.assertIn("feature", data)
+
     def test_conn_remove_module(self):
         with sysrepo.SysrepoConnection() as conn:
             conn.remove_module("sysrepo-example")
