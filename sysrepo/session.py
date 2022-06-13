@@ -978,6 +978,7 @@ class SysrepoSession:
         no_subs: bool = False,
         no_stored: bool = False,
         strip_prefixes: bool = True,
+        include_implicit_defaults: bool = False,
         trim_default_values: bool = False,
         keep_empty_containers: bool = False,
     ) -> Dict:
@@ -1003,6 +1004,7 @@ class SysrepoSession:
                 with_siblings=True,
                 absolute=True,
                 strip_prefixes=strip_prefixes,
+                include_implicit_defaults=include_implicit_defaults,
                 trim_default_values=trim_default_values,
                 keep_empty_containers=keep_empty_containers,
             )
