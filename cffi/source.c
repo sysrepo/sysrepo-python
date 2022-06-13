@@ -7,8 +7,8 @@
 #include <sysrepo/version.h>
 
 #if (SR_VERSION_MAJOR != 7)
-#error "This version of sysrepo bindings only works with sysrepo 7.x"
+#error "This version of sysrepo bindings only works with libsysrepo.so.7"
 #endif
-#if (SR_VERSION_MINOR < 6)
-#error "Need at least sysrepo 7.6"
+#if (SR_VERSION_MINOR < 7)
+#error "Need at least libsysrepo.so.7.7"
 #endif
