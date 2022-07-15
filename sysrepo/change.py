@@ -83,7 +83,11 @@ class Change:
                 prev_dflt=prev_dflt,
             )
         if operation == lib.SR_OP_DELETED:
-            return ChangeDeleted(node.path())
+            if isinstance(node, (libyang.DLeaf, libyang.DLeafList)):
+                value = node.value()
+            else:
+                value = None
+            return ChangeDeleted(node.path(), value)
         if operation == lib.SR_OP_MOVED:
             return ChangeMoved(
                 node.path(),
@@ -156,7 +160,18 @@ class ChangeModified(Change):
 
 # ------------------------------------------------------------------------------
 class ChangeDeleted(Change):
-    pass
+
+    __slots__ = ("value",)
+
+    def __init__(self, xpath: str, value: Any):
+        super().__init__(xpath)
+        self.value = value
+
+    def __eq__(self, other: Any) -> bool:
+        return super().__eq__(other) and other.value == self.value
+
+    def __str__(self) -> str:
+        return "%s: %r" % (self.xpath, self.value)
 
 
 # ------------------------------------------------------------------------------
