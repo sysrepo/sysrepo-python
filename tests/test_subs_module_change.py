@@ -106,13 +106,16 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             }
             expected_changes = [
                 sysrepo.ChangeDeleted(
-                    "/sysrepo-example:conf/network/interface[name='eth0']"
+                    "/sysrepo-example:conf/network/interface[name='eth0']",
+                    None,
                 ),
                 sysrepo.ChangeDeleted(
-                    "/sysrepo-example:conf/network/interface[name='eth0']/name"
+                    "/sysrepo-example:conf/network/interface[name='eth0']/name",
+                    "eth0",
                 ),
                 sysrepo.ChangeDeleted(
-                    "/sysrepo-example:conf/network/interface[name='eth0']/up"
+                    "/sysrepo-example:conf/network/interface[name='eth0']/up",
+                    True,
                 ),
                 sysrepo.ChangeCreated(
                     "/sysrepo-example:conf/network/interface[name='eth2']",
