@@ -287,6 +287,7 @@ class SysrepoSession:
         *,
         priority: int = 0,
         no_thread: bool = False,
+        oper_merge: bool = False,
         passive: bool = False,
         done_only: bool = False,
         enabled: bool = False,
@@ -312,6 +313,11 @@ class SysrepoSession:
             There will be no thread created for handling this subscription
             meaning no event will be processed! Default to `True` if
             asyncio_register is `True`.
+        :arg oper_merge:
+            Instead of removing any previous existing matching data before
+            getting them from an operational subscription callback, keep
+            them. Then the returned data are merged into the existing
+            data. Valid only for operational subscriptions.
         :arg passive:
             The subscriber is not the "owner" of the subscribed data tree, just
             a passive watcher for changes.
@@ -350,7 +356,11 @@ class SysrepoSession:
         if asyncio_register:
             no_thread = True  # we manage our own event loop
         flags = _subscribe_flags(
-            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
+            no_thread=no_thread,
+            passive=passive,
+            done_only=done_only,
+            enabled=enabled,
+            oper_merge=oper_merge,
         )
 
         check_call(
@@ -1382,7 +1392,9 @@ def _get_oper_flags(no_state=False, no_config=False, no_subs=False, no_stored=Fa
 
 
 # -------------------------------------------------------------------------------------
-def _subscribe_flags(no_thread=False, passive=False, done_only=False, enabled=False):
+def _subscribe_flags(
+    no_thread=False, passive=False, done_only=False, enabled=False, oper_merge=False
+):
     flags = 0
     if no_thread:
         flags |= lib.SR_SUBSCR_NO_THREAD
@@ -1392,6 +1404,8 @@ def _subscribe_flags(no_thread=False, passive=False, done_only=False, enabled=Fa
         flags |= lib.SR_SUBSCR_DONE_ONLY
     if enabled:
         flags |= lib.SR_SUBSCR_ENABLED
+    if oper_merge:
+        flags |= lib.SR_SUBSCR_OPER_MERGE
     return flags
 
 
