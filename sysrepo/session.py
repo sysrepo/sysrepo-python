@@ -287,7 +287,6 @@ class SysrepoSession:
         *,
         priority: int = 0,
         no_thread: bool = False,
-        oper_merge: bool = False,
         passive: bool = False,
         done_only: bool = False,
         enabled: bool = False,
@@ -313,11 +312,6 @@ class SysrepoSession:
             There will be no thread created for handling this subscription
             meaning no event will be processed! Default to `True` if
             asyncio_register is `True`.
-        :arg oper_merge:
-            Instead of removing any previous existing matching data before
-            getting them from an operational subscription callback, keep
-            them. Then the returned data are merged into the existing
-            data. Valid only for operational subscriptions.
         :arg passive:
             The subscriber is not the "owner" of the subscribed data tree, just
             a passive watcher for changes.
@@ -356,11 +350,7 @@ class SysrepoSession:
         if asyncio_register:
             no_thread = True  # we manage our own event loop
         flags = _subscribe_flags(
-            no_thread=no_thread,
-            passive=passive,
-            done_only=done_only,
-            enabled=enabled,
-            oper_merge=oper_merge,
+            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
         )
 
         check_call(
