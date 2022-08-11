@@ -401,6 +401,7 @@ class SysrepoSession:
         callback: OperDataCallbackType,
         *,
         no_thread: bool = False,
+        oper_merge: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
         strict: bool = False,
@@ -420,6 +421,11 @@ class SysrepoSession:
         :arg no_thread:
             There will be no thread created for handling this subscription meaning no
             event will be processed! Default to `True` if asyncio_register is `True`.
+        :arg oper_merge:
+            Instead of removing any previous existing matching data before
+            getting them from an operational subscription callback, keep
+            them. Then the returned data are merged into the existing
+            data. Valid only for operational subscriptions.
         :arg private_data:
             Private context passed to the callback function, opaque to sysrepo.
         :arg asyncio_register:
@@ -448,7 +454,7 @@ class SysrepoSession:
 
         if asyncio_register:
             no_thread = True  # we manage our own event loop
-        flags = _subscribe_flags(no_thread=no_thread)
+        flags = _subscribe_flags(no_thread=no_thread, oper_merge=oper_merge)
 
         check_call(
             lib.sr_oper_get_subscribe,
