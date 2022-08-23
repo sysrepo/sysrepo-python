@@ -186,6 +186,7 @@ int sr_rpc_send_tree(sr_session_ctx_t *, struct lyd_node *, uint32_t, sr_data_t 
 
 int sr_set_item_str(sr_session_ctx_t *, const char *, const char *, const char *, const sr_edit_options_t);
 int sr_delete_item(sr_session_ctx_t *, const char *, const sr_edit_options_t);
+int sr_oper_delete_item_str(sr_session_ctx_t *, const char *, const char *, const sr_edit_options_t);
 int sr_edit_batch(sr_session_ctx_t *, const struct lyd_node *, const char *);
 int sr_replace_config(sr_session_ctx_t *, const char *, struct lyd_node *, uint32_t);
 int sr_validate(sr_session_ctx_t *, const char *, uint32_t);
