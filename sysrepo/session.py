@@ -1050,6 +1050,29 @@ class SysrepoSession:
         """
         check_call(lib.sr_delete_item, self.cdata, str2c(xpath), 0)
 
+    def delete_oper_item(self, xpath: str, value: Any = None) -> None:
+        """
+        Prepare to delete the nodes matching the specified xpath in the operational
+        datastore. These changes are applied only after calling
+        apply_changes().
+
+        :arg xpath:
+            Path identifier of the data element to be deleted.
+        :arg value:
+            String representation of the value deleted.
+
+        :raises SysrepoNotFoundError:
+            If no nodes match the path.
+        """
+        if value is not None and not isinstance(value, str):
+            if isinstance(value, bool):
+                value = str(value).lower()
+            else:
+                value = str(value)
+        check_call(
+            lib.sr_oper_delete_item_str, self.cdata, str2c(xpath), str2c(value), 0
+        )
+
     def edit_batch_ly(
         self, edit: libyang.DNode, default_operation: str = "merge"
     ) -> None:
