@@ -111,11 +111,11 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
                 ),
                 sysrepo.ChangeDeleted(
                     "/sysrepo-example:conf/network/interface[name='eth0']/name",
-                    "eth0",
+                    None,
                 ),
                 sysrepo.ChangeDeleted(
                     "/sysrepo-example:conf/network/interface[name='eth0']/up",
-                    True,
+                    None,
                 ),
                 sysrepo.ChangeCreated(
                     "/sysrepo-example:conf/network/interface[name='eth2']",
@@ -190,6 +190,86 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             expected_changes = [
                 sysrepo.ChangeMoved(
                     "/sysrepo-example:conf/network/interface[name='eth0']", after=""
+                ),
+            ]
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
+            self.assertEqual(current_config, sent_config)
+
+    def test_module_change_sub_with_deleted_values(self):
+        priv = object()
+        current_config = {}
+        expected_changes = []
+
+        def module_change_cb(event, req_id, changes, private_data):
+            self.assertIn(event, ("change", "done", "abort"))
+            self.assertIs(private_data, priv)
+            if event in ("change", "done"):
+                self.assertEqual(changes, expected_changes)
+            if event == "done":
+                sysrepo.update_config_cache(current_config, changes)
+
+        self.sess.subscribe_module_change(
+            "sysrepo-example",
+            "/sysrepo-example:conf",
+            module_change_cb,
+            private_data=priv,
+            include_deleted_values=True,
+        )
+
+        with self.conn.start_session("running") as ch_sess:
+            # 1.
+            sent_config = {
+                "conf": {
+                    "system": {"hostname": "bar"},
+                    "network": {"interface": [{"name": "eth0", "up": True}]},
+                }
+            }
+            expected_changes = [
+                sysrepo.ChangeCreated("/sysrepo-example:conf/system/hostname", "bar"),
+                sysrepo.ChangeCreated(
+                    "/sysrepo-example:conf/network/interface[name='eth0']",
+                    {"name": "eth0", "up": True},
+                    after="",
+                ),
+                sysrepo.ChangeCreated(
+                    "/sysrepo-example:conf/network/interface[name='eth0']/name", "eth0"
+                ),
+                sysrepo.ChangeCreated(
+                    "/sysrepo-example:conf/network/interface[name='eth0']/up", True
+                ),
+            ]
+            ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
+            self.assertEqual(current_config, sent_config)
+            # 2.
+            sent_config = {
+                "conf": {
+                    "system": {"hostname": "bar"},
+                    "network": {"interface": [{"name": "eth2", "up": False}]},
+                }
+            }
+            expected_changes = [
+                sysrepo.ChangeDeleted(
+                    "/sysrepo-example:conf/network/interface[name='eth0']",
+                    {"name": "eth0", "up": True},
+                ),
+                sysrepo.ChangeDeleted(
+                    "/sysrepo-example:conf/network/interface[name='eth0']/name",
+                    "eth0",
+                ),
+                sysrepo.ChangeDeleted(
+                    "/sysrepo-example:conf/network/interface[name='eth0']/up",
+                    True,
+                ),
+                sysrepo.ChangeCreated(
+                    "/sysrepo-example:conf/network/interface[name='eth2']",
+                    {"name": "eth2", "up": False},
+                    after="",
+                ),
+                sysrepo.ChangeCreated(
+                    "/sysrepo-example:conf/network/interface[name='eth2']/name", "eth2"
+                ),
+                sysrepo.ChangeCreated(
+                    "/sysrepo-example:conf/network/interface[name='eth2']/up", False
                 ),
             ]
             ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)

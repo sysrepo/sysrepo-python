@@ -293,6 +293,7 @@ class SysrepoSession:
         private_data: Any = None,
         asyncio_register: bool = False,
         include_implicit_defaults: bool = True,
+        include_deleted_values: bool = False,
         extra_info: bool = False,
     ) -> None:
         """
@@ -329,6 +330,8 @@ class SysrepoSession:
             monitored read file descriptors. Implies `no_thread=True`.
         :arg include_implicit_defaults:
             Include implicit default nodes in changes.
+        :arg include_deleted_values:
+            Include deleted nodes values in changes.
         :arg extra_info:
             When True, the given callback is called with extra keyword arguments
             containing extra information of the sysrepo session that gave origin to the
@@ -343,6 +346,7 @@ class SysrepoSession:
             private_data,
             asyncio_register=asyncio_register,
             include_implicit_defaults=include_implicit_defaults,
+            include_deleted_values=include_deleted_values,
             extra_info=extra_info,
         )
         sub_p = ffi.new("sr_subscription_ctx_t **")
@@ -732,7 +736,10 @@ class SysrepoSession:
 
     # begin: changes
     def get_changes(
-        self, xpath: str, include_implicit_defaults: bool = True
+        self,
+        xpath: str,
+        include_implicit_defaults: bool = True,
+        include_deleted_values: bool = False,
     ) -> Iterator[Change]:
         """
         Return an iterator that will yield all pending changes in the current session.
@@ -743,6 +750,8 @@ class SysrepoSession:
             appended to the XPath.
         :arg include_implicit_defaults:
             Include implicit default nodes.
+        :arg include_deleted_values:
+            Include deleted node values into the returned Change objects.
 
         :returns:
             An iterator that will yield `sysrepo.Change` objects.
@@ -778,6 +787,7 @@ class SysrepoSession:
                             prev_list=c2str(prev_list_p[0]),
                             prev_dflt=bool(prev_dflt_p[0]),
                             include_implicit_defaults=include_implicit_defaults,
+                            include_deleted_values=include_deleted_values,
                         )
                 except Change.Skip:
                     pass

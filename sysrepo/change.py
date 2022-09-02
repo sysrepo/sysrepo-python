@@ -31,6 +31,7 @@ class Change:
         prev_list: str,
         prev_dflt: bool,
         include_implicit_defaults: bool = True,
+        include_deleted_values: bool = False,
     ) -> "Change":
         """
         Parse an operation code and values from libsysrepo.so and return a Change
@@ -64,6 +65,8 @@ class Change:
             Previous value default flag, depends on the operation.
         :arg include_implicit_defaults:
             Include implicit default values into the data dictionaries.
+        :arg include_deleted_values:
+            Include deleted nodes values.
         """
         if operation == lib.SR_OP_CREATED:
             if not node.should_print(
@@ -83,8 +86,8 @@ class Change:
                 prev_dflt=prev_dflt,
             )
         if operation == lib.SR_OP_DELETED:
-            if isinstance(node, (libyang.DLeaf, libyang.DLeafList)):
-                value = node.value()
+            if include_deleted_values:
+                value = _node_value(node, include_implicit_defaults)
             else:
                 value = None
             return ChangeDeleted(node.path(), value)
