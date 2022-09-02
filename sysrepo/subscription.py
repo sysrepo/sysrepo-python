@@ -33,6 +33,7 @@ class Subscription:
         asyncio_register: bool = False,
         strict: bool = False,
         include_implicit_defaults: bool = True,
+        include_deleted_values: bool = False,
         extra_info: bool = False,
     ):
         """
@@ -50,6 +51,9 @@ class Subscription:
         :arg include_implicit_defaults:
             If True, include implicit default nodes into Change objects passed to module
             change callbacks and into input parameters passed to RPC/action callbacks.
+        :arg include_deleted_values:
+            If True, include the complete deleted node values into Change objects passed
+            to module change callbacks.
         :arg extra_info:
             When True, the given callback is called with extra keyword arguments
             containing extra information of the sysrepo session that gave origin to the
@@ -64,6 +68,7 @@ class Subscription:
         self.asyncio_register = asyncio_register
         self.strict = strict
         self.include_implicit_defaults = include_implicit_defaults
+        self.include_deleted_values = include_deleted_values
         self.extra_info = extra_info
         if asyncio_register:
             self.loop = asyncio.get_event_loop()
@@ -242,6 +247,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
                     session.get_changes(
                         root_xpath + "//.",
                         include_implicit_defaults=subscription.include_implicit_defaults,
+                        include_deleted_values=subscription.include_deleted_values,
                     )
                 )
                 task = subscription.loop.create_task(
@@ -270,6 +276,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
                 session.get_changes(
                     root_xpath + "//.",
                     include_implicit_defaults=subscription.include_implicit_defaults,
+                    include_deleted_values=subscription.include_deleted_values,
                 )
             )
             callback(event_name, req_id, changes, private_data, **extra_info)
