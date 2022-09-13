@@ -1180,7 +1180,7 @@ class SysrepoSession:
         dnode = module.parse_data_dict(config, strict=strict, validate=False)
         self.replace_config_ly(dnode, module_name, timeout_ms=timeout_ms)
 
-    def validate(self) -> None:
+    def validate(self, module_name: str = None) -> None:
         """
         Perform the validation a datastore and any changes made in the current
         session, but do not apply nor discard them.
@@ -1188,12 +1188,16 @@ class SysrepoSession:
         Provides only YANG validation, apply-changes **subscribers will not be
         notified** in this case.
 
+        :arg module_name:
+            If specified, limits the validate operation only to this module and its
+            dependencies.
+
         :raises SysrepoError:
             If validation failed.
         """
         if self.is_implicit:
             raise SysrepoUnsupportedError("cannot validate with implicit sessions")
-        check_call(lib.sr_validate, self.cdata, 0)
+        check_call(lib.sr_validate, self.cdata, str2c(module_name), 0)
 
     def apply_changes(self, timeout_ms: int = 0) -> None:
         """
