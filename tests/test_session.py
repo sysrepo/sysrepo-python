@@ -95,6 +95,31 @@ class SessionTest(unittest.TestCase):
         def iface(name, field):
             return "/sysrepo-example:conf/network/interface[name=%r]/%s" % (name, field)
 
+        def assert_data():
+            with self.conn.start_session("running") as new_sess:
+                data = new_sess.get_data("/sysrepo-example:conf")
+                self.assertEqual(
+                    data,
+                    {
+                        "conf": {
+                            "network": {
+                                "interface": [
+                                    {
+                                        "name": "eth0",
+                                        "address": "1.2.3.4/24",
+                                        "up": True,
+                                    },
+                                    {
+                                        "name": "eth1",
+                                        "address": "4.3.2.1/24",
+                                        "up": False,
+                                    },
+                                ]
+                            }
+                        }
+                    },
+                )
+
         with self.conn.start_session("running") as sess:
             sess.replace_config({}, "sysrepo-example")
             sess.set_item(iface("eth0", "address"), "1.2.3.4/24")
@@ -104,23 +129,11 @@ class SessionTest(unittest.TestCase):
             sess.apply_changes()
             sess.set_item(iface("eth2", "address"), "8.8.8.8/24")
             sess.set_item(iface("eth2", "up"), True)
+            sess.validate()
+            assert_data()
             sess.discard_changes()
 
-        with self.conn.start_session("running") as sess:
-            data = sess.get_data("/sysrepo-example:conf")
-            self.assertEqual(
-                data,
-                {
-                    "conf": {
-                        "network": {
-                            "interface": [
-                                {"name": "eth0", "address": "1.2.3.4/24", "up": True},
-                                {"name": "eth1", "address": "4.3.2.1/24", "up": False},
-                            ]
-                        }
-                    }
-                },
-            )
+        assert_data()
 
     def test_get_netconf_id_and_get_user_are_only_available_in_implicit_session(self):
         with self.conn.start_session("running") as sess:
