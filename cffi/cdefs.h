@@ -81,8 +81,11 @@ int sr_disconnect(sr_conn_ctx_t *);
 const struct ly_ctx *sr_acquire_context(sr_conn_ctx_t *);
 void sr_release_context(sr_conn_ctx_t *);
 int sr_install_module(sr_conn_ctx_t *, const char *, const char *, const char **);
+int sr_install_modules(sr_conn_ctx_t *conn, const char **, const char *, const char ***);
 int sr_remove_module(sr_conn_ctx_t *, const char *, int);
+int sr_remove_modules(sr_conn_ctx_t *conn, const char **, int);
 int sr_update_module(sr_conn_ctx_t *, const char *, const char *);
+int sr_update_modules(sr_conn_ctx_t *, const char **, const char *);
 int sr_enable_module_feature(sr_conn_ctx_t *, const char *, const char *);
 int sr_disable_module_feature(sr_conn_ctx_t *, const char *, const char *);
 

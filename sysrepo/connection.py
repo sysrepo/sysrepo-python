@@ -4,7 +4,7 @@
 from contextlib import contextmanager
 import logging
 import signal
-from typing import Optional, Sequence
+from typing import Dict, Optional, Sequence
 
 import libyang
 
@@ -166,6 +166,87 @@ class SysrepoConnection:
             valid_codes=valid_codes,
         )
 
+    def install_modules(
+        self,
+        filepaths: Dict[str, Sequence[str]],
+        searchdirs: Optional[Sequence[str]] = None,
+        ignore_already_exists=False,
+    ) -> None:
+        """
+        Install new schemas (modules) into sysrepo in a batch.
+
+        :arg filepaths:
+            Dict of paths to the new schemas associated with a list of features to enable.
+            Can have either YANG or YIN extension/format.
+        :arg searchdirs:
+            Optional list of search directories for import schemas.
+        :arg ignore_already_exists:
+            Ignore error if module already exists in sysrepo.
+        """
+        schema_paths = tuple([str2c(k) for k in filepaths] + [ffi.NULL])
+
+        # We need to maintain a pointer to extension names in C
+        _ref = []
+        all_features = []
+        has_feature = False
+        for features in filepaths.values():
+            features_cname = []
+            for f in features:
+                cname = str2c(f)
+                _ref.append(cname)
+                features_cname.append(cname)
+                has_feature = True
+
+            all_features.append(ffi.new("char *[]", tuple(features_cname + [ffi.NULL])))
+
+        if has_feature:
+            all_features = tuple(all_features)
+        else:
+            all_features = ffi.NULL
+
+        if ignore_already_exists:
+            valid_codes = (lib.SR_ERR_OK, lib.SR_ERR_EXISTS)
+        else:
+            valid_codes = (lib.SR_ERR_OK,)
+
+        if not searchdirs:
+            searchdirs = []
+
+        check_call(
+            lib.sr_install_modules,
+            self.cdata,
+            schema_paths,
+            str2c(":".join(searchdirs)),
+            all_features,
+            valid_codes=valid_codes,
+        )
+
+    def update_modules(
+        self,
+        filepaths: Sequence[str],
+        searchdirs: Optional[Sequence[str]] = None,
+    ) -> None:
+        """
+        Update schemas (modules) into sysrepo in a batch.
+
+        :arg filepaths:
+            Array of paths to the new schemas.
+            Can have either YANG or YIN extension/format.
+        :arg searchdirs:
+            Optional list of search directories for import schemas.
+        """
+        schema_paths = tuple([str2c(path) for path in filepaths] + [ffi.NULL])
+        if not searchdirs:
+            searchdirs = []
+
+        check_call(
+            lib.sr_update_modules,
+            self.cdata,
+            schema_paths,
+            str2c(":".join(searchdirs)),
+            valid_codes=(lib.SR_ERR_OK,),
+        )
+
     def remove_module(self, name: str, force: bool = False) -> None:
         """
         Remove an installed module from sysrepo. Deferred until there are no
@@ -175,6 +256,16 @@ class SysrepoConnection:
             Name of the module to remove.
         """
         check_call(lib.sr_remove_module, self.cdata, str2c(name), force)
+
+    def remove_modules(self, names: Sequence[str], force: bool = False) -> None:
+        """
+        Remove installed modules from sysrepo.
+
+        :arg str names:
+            Array of names of the modules to remove.
+        """
+        names = tuple([str2c(n) for n in names] + [ffi.NULL])
+        check_call(lib.sr_remove_modules, self.cdata, names, force)
 
     def enable_module_feature(self, name: str, feature_name: str) -> None:
         """

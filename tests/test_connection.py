@@ -42,9 +42,28 @@ class ConnectionTest(unittest.TestCase):
             with conn.start_session("operational") as sess:
                 self.assertEqual(sess.get_datastore(), "operational")
 
-    def test_conn_install_module(self):
+    def test_conn_install_remove_modules(self):
+        YANG_FILE2 = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "examples/sysrepo-example2.yang"
+        )
+        with sysrepo.SysrepoConnection() as conn:
+            filepaths = {YANG_FILE: ["turbo"], YANG_FILE2: ["turbo2"]}
+            # filepaths = {YANG_FILE2: ["turbo2"]}
+            conn.install_modules(filepaths)
+
+        with sysrepo.SysrepoConnection() as conn:
+            modules = ["sysrepo-example", "sysrepo-example2"]
+            conn.remove_modules(modules)
+
+    def test_conn_install_remove_module(self):
         with sysrepo.SysrepoConnection() as conn:
             conn.install_module(YANG_FILE, enabled_features=["turbo"])
+        with sysrepo.SysrepoConnection() as conn:
+            conn.remove_module("sysrepo-example")
+        with sysrepo.SysrepoConnection() as conn:
+            with conn.get_ly_ctx() as ctx:
+                with self.assertRaises(libyang.LibyangError):
+                    ctx.get_module("sysrepo-example")
 
     def test_conn_enable_module_feature(self):
         with sysrepo.SysrepoConnection() as conn:
@@ -57,11 +76,4 @@ class ConnectionTest(unittest.TestCase):
                 data = data["module"]
                 data = [x for x in data if x["name"] == "sysrepo-example"][0]
                 self.assertIn("feature", data)
-
-    def test_conn_remove_module(self):
-        with sysrepo.SysrepoConnection() as conn:
             conn.remove_module("sysrepo-example")
-        with sysrepo.SysrepoConnection() as conn:
-            with conn.get_ly_ctx() as ctx:
-                with self.assertRaises(libyang.LibyangError):
-                    ctx.get_module("sysrepo-example")
