@@ -9,6 +9,6 @@
 #if (SR_VERSION_MAJOR != 7)
 #error "This version of sysrepo bindings only works with libsysrepo.so.7"
 #endif
-#if (SR_VERSION_MINOR < 7)
-#error "Need at least libsysrepo.so.7.7"
+#if (SR_VERSION_MINOR < 10)
+#error "Need at least libsysrepo.so.7.10"
 #endif
