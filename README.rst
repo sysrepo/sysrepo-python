@@ -49,16 +49,13 @@ On a Debian/Ubuntu system:
 Compatibility
 -------------
 
-.. attention::
+The current version requires at least C `sysrepo 2.1.66`__.
 
-   For now, only the 1.x versions of sysrepo__ and libyang__ are supported.
-   These CFFI bindings will not work with the latest versions. See issues
-   `#17`__ for more details and `#12`__ for updates.
+The last version of the bindings that works with C `sysrepo 1.x`__ is v0.7.0__.
 
-   __ https://github.com/sysrepo/sysrepo/tree/libyang1
-   __ https://github.com/CESNET/libyang/tree/libyang1
-   __ https://github.com/sysrepo/sysrepo-python/issues/17
-   __ https://github.com/sysrepo/sysrepo-python/issues/12
+__ https://github.com/sysrepo/sysrepo/commit/a2a45fb32542
+__ https://github.com/sysrepo/sysrepo/tree/libyang1
+__ https://pypi.org/project/sysrepo/0.7.0/
 
 Compilation Flags
 -----------------
