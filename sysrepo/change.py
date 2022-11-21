@@ -68,11 +68,9 @@ class Change:
         :arg include_deleted_values:
             Include deleted nodes values.
         """
+        if not node.should_print(include_implicit_defaults=include_implicit_defaults):
+            raise Change.Skip()
         if operation == lib.SR_OP_CREATED:
-            if not node.should_print(
-                include_implicit_defaults=include_implicit_defaults
-            ):
-                raise Change.Skip()
             return ChangeCreated(
                 node.path(),
                 _node_value(node, include_implicit_defaults),
