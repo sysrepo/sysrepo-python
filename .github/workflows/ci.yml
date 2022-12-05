@@ -23,7 +23,7 @@ jobs:
       - run: python -m tox -e lint
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         include:
@@ -37,7 +37,7 @@ jobs:
             toxenv: py39
           - python: '3.10'
             toxenv: py310
-          - python: pypy3
+          - python: pypy3.9
             toxenv: pypy3
     steps:
       - uses: actions/checkout@v3
