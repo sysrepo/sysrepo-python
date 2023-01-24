@@ -84,6 +84,8 @@ class OperSubscriptionTest(unittest.TestCase):
             self.assertEqual(getpass.getuser(), kwargs["user"])
             self.assertIn("netconf_id", kwargs)
             self.assertEqual(kwargs["netconf_id"], 12)
+            self.assertIn("parent_xpath", kwargs)
+            self.assertIsNone(kwargs["parent_xpath"])
             calls.append((xpath, private_data, kwargs))
             return {"state": {}}
 
@@ -103,3 +105,83 @@ class OperSubscriptionTest(unittest.TestCase):
             )
             self.assertEqual(len(calls), 1)
             self.assertEqual(oper_data, {})
+
+    def test_oper_sub_with_parent_xpath(self):
+        parents = []
+
+        def state_cb(xpath, private_data):
+            return {
+                "state": {
+                    "system": {"hostname": "foo"},
+                    "network": {
+                        "interface": [
+                            {"name": "eth0", "address": "1.2.3.4/24", "up": True},
+                            {"name": "eth1", "address": "5.6.7.8/24", "up": False},
+                        ]
+                    },
+                }
+            }
+
+        def stats_cb(xpath, private_data, **kwargs):
+            parent_xpath = kwargs["parent_xpath"]
+            parents.append(parent_xpath)
+            name = "eth0" if "eth0" in parent_xpath else "eth1"
+            rx = 42 if name == "eth0" else 43
+            return {
+                "state": {
+                    "network": {
+                        "interface": [
+                            {"name": name, "stats": {"rx": rx, "tx": rx}},
+                        ]
+                    }
+                }
+            }
+
+        self.sess.subscribe_oper_data_request(
+            "sysrepo-example",
+            "/sysrepo-example:state",
+            state_cb,
+            strict=True,
+        )
+        self.sess.subscribe_oper_data_request(
+            "sysrepo-example",
+            "/sysrepo-example:state/network/interface/stats",
+            stats_cb,
+            strict=True,
+            extra_info=True,
+        )
+
+        with self.conn.start_session("operational") as op_sess:
+            op_sess.set_extra_info("netopeer2", 12, getpass.getuser())
+            oper_data = op_sess.get_data("/sysrepo-example:state")
+            self.assertEqual(
+                sorted(parents),
+                [
+                    "/sysrepo-example:state/network/interface[name='eth0']",
+                    "/sysrepo-example:state/network/interface[name='eth1']",
+                ],
+            )
+            self.assertEqual(
+                oper_data,
+                {
+                    "state": {
+                        "system": {"hostname": "foo"},
+                        "network": {
+                            "interface": [
+                                {
+                                    "name": "eth0",
+                                    "address": "1.2.3.4/24",
+                                    "up": True,
+                                    "stats": {"rx": 42, "tx": 42},
+                                },
+                                {
+                                    "name": "eth1",
+                                    "address": "5.6.7.8/24",
+                                    "up": False,
+                                    "stats": {"rx": 43, "tx": 43},
+                                },
+                            ]
+                        },
+                    }
+                },
+            )

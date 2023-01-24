@@ -601,6 +601,11 @@ class SysrepoSession:
             * netconf_id: the NETCONF session ID set for the event originator
                 sysrepo session
             * user: the effective username of the event originator sysrepo session
+            * parent_xpath: XPath of the parent instance the data is requested for,
+                for example "/mod:cont/list[key='val']" when the callback provides
+                nodes inside a list entry. It is None when there is no parent. Note
+                that the returned dictionary must still start from the top-level node
+                and include the path down to this parent, list keys included.
 
     The callback is expected to return a python dictionary containing the operational
     data. The dictionary should be in the libyang "dict" format. It will be parsed to a
