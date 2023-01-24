@@ -43,9 +43,10 @@ def main():
     try:
         with sysrepo.SysrepoConnection() as conn:
             if args.list:
-                for module in conn.get_ly_ctx():
-                    if module.implemented():
-                        print(module.name())
+                with conn.get_ly_ctx() as ctx:
+                    for module in ctx:
+                        if module.implemented():
+                            print(module.name())
             elif args.install:
                 conn.install_module(args.install)
             elif args.uninstall:
