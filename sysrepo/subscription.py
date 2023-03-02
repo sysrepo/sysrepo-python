@@ -229,10 +229,16 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
         private_data = subscription.private_data
         event_name = EVENT_NAMES[event]
         if subscription.extra_info:
-            extra_info = {
-                "netconf_id": session.get_netconf_id(),
-                "user": session.get_user(),
-            }
+            try:
+                extra_info = {
+                    "netconf_id": session.get_netconf_id(),
+                    "user": session.get_user(),
+                }
+            except SysrepoError:
+                extra_info = {
+                    "netconf_id": -1,
+                    "user": "",
+                }
         else:
             extra_info = {}
 
