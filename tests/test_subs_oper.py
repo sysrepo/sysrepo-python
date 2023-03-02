@@ -39,8 +39,9 @@ class OperSubscriptionTest(unittest.TestCase):
         priv = object()
         state = None
 
-        def oper_data_cb(xpath, private_data):
+        def oper_data_cb(xpath, path, private_data):
             self.assertEqual(xpath, "/sysrepo-example:state")
+            self.assertIsNone(path)
             self.assertEqual(private_data, priv)
             return state
 
@@ -77,8 +78,9 @@ class OperSubscriptionTest(unittest.TestCase):
         priv = object()
         calls = []
 
-        def oper_data_cb(xpath, private_data, **kwargs):
+        def oper_data_cb(xpath, path, private_data, **kwargs):
             self.assertEqual(xpath, "/sysrepo-example:state")
+            self.assertIsNone(path)
             self.assertEqual(private_data, priv)
             self.assertIn("user", kwargs)
             self.assertEqual(getpass.getuser(), kwargs["user"])

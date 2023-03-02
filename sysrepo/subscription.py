@@ -367,12 +367,17 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
         else:
             extra_info = {}
 
+        parent_xpath = None
+        if parent[0]:
+            with session.get_ly_ctx() as ly_ctx:
+                parent_xpath = DNode.new(ly_ctx, parent[0]).path()
+
         if is_async_func(callback):
             task_id = req_id
 
             if task_id not in subscription.tasks:
                 task = subscription.loop.create_task(
-                    callback(req_xpath, private_data, **extra_info)
+                    callback(req_xpath, parent_xpath, private_data, **extra_info)
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, "oper")
@@ -389,7 +394,7 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
             oper_data = task.result()
 
         else:
-            oper_data = callback(req_xpath, private_data, **extra_info)
+            oper_data = callback(req_xpath, parent_xpath, private_data, **extra_info)
 
         if isinstance(oper_data, dict):
             # convert oper_data to a libyang.DNode object

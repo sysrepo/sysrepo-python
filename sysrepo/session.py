@@ -372,13 +372,17 @@ class SysrepoSession:
 
         self.subscriptions.append(sub)
 
-    OperDataCallbackType = Callable[[str, Any], Optional[Dict]]
+    OperDataCallbackType = Callable[[str, Optional[str], Any], Optional[Dict]]
     """
     Callback to be called when the operational data are requested.
 
     :arg xpath:
         The XPath requested by a client. Can be None if the client requested for all the
         module operational data.
+    :arg parent_xpath:
+        XPath to an existing parent of the requested nodes. It is None for top-level
+        nodes. Caller is supposed to append the requested nodes to this data subtree
+        and return either the original parent or a top-level node.
     :arg private_data:
         Private context opaque to sysrepo used when subscribing.
     :arg kwargs (optional):
