@@ -180,6 +180,7 @@ NOTIF_TYPES = {
     lib.SR_EV_NOTIF_RESUMED: "resumed",
 }
 
+
 # ------------------------------------------------------------------------------
 @ffi.def_extern(name="srpy_module_change_cb")
 def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):

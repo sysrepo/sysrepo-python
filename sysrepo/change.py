@@ -10,7 +10,6 @@ from _sysrepo import lib
 
 # ------------------------------------------------------------------------------
 class Change:
-
     __slots__ = ("xpath",)
 
     def __init__(self, xpath: str):
@@ -113,7 +112,6 @@ class Change:
 
 # ------------------------------------------------------------------------------
 class ChangeCreated(Change):
-
     __slots__ = ("value", "after")
 
     def __init__(self, xpath: str, value: Any, after: Optional[str] = None):
@@ -138,7 +136,6 @@ class ChangeCreated(Change):
 
 # ------------------------------------------------------------------------------
 class ChangeModified(Change):
-
     __slots__ = ("value", "prev_val", "prev_dflt")
 
     def __init__(self, xpath: str, value: Any, prev_val: str, prev_dflt: bool = False):
@@ -161,7 +158,6 @@ class ChangeModified(Change):
 
 # ------------------------------------------------------------------------------
 class ChangeDeleted(Change):
-
     __slots__ = ("value",)
 
     def __init__(self, xpath: str, value: Any):
@@ -177,7 +173,6 @@ class ChangeDeleted(Change):
 
 # ------------------------------------------------------------------------------
 class ChangeMoved(Change):
-
     __slots__ = ("after",)
 
     def __init__(self, xpath: str, after: str):

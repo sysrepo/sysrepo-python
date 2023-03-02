@@ -9,7 +9,6 @@ from .util import c2str
 
 # ------------------------------------------------------------------------------
 class SysrepoError(Exception):
-
     rc = None
     __slots__ = ("msg",)
 
