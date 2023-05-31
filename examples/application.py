@@ -42,6 +42,12 @@ def main():
             with conn.start_session() as sess:
                 logging.info("subscribing to module changes: sysrepo-example")
                 sess.subscribe_module_change("sysrepo-example", None, module_change_cb)
+                sess.subscribe_module_change_unsafe(
+                    "sysrepo-example",
+                    None,
+                    module_change_unsafe_cb,
+                    priority=1,
+                )
                 logging.info(
                     "subscribing to operational data requests: /sysrepo-example:state"
                 )
@@ -69,6 +75,19 @@ def module_change_cb(event, req_id, changes, private_data):
     print("========================")
     print("Module changed event: %s (request ID %s)" % (event, req_id))
     print("----- changes -----")
+    for c in changes:
+        print(repr(c))
+    print("----- end of changes -----")
+    print()
+
+
+# ------------------------------------------------------------------------------
+def module_change_unsafe_cb(session, event, req_id, private_data):
+    print()
+    print("========================")
+    print("(unsafe) Module changed event: %s (request ID %s)" % (event, req_id))
+    print("----- changes -----")
+    changes = list(session.get_changes("/sysrepo-example:conf//."))
     for c in changes:
         print(repr(c))
     print("----- end of changes -----")
