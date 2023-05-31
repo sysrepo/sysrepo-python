@@ -17,7 +17,7 @@ from .errors import (
     check_call,
 )
 from .subscription import Subscription
-from .util import c2str, str2c
+from .util import c2str, is_async_func, str2c
 from .value import Value
 
 
@@ -357,6 +357,118 @@ class SysrepoSession:
             no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
         )
 
+        check_call(
+            lib.sr_module_change_subscribe,
+            self.cdata,
+            str2c(module),
+            str2c(xpath),
+            lib.srpy_module_change_cb,
+            sub.handle,
+            priority,
+            flags,
+            sub_p,
+        )
+        sub.init(sub_p[0])
+
+        self.subscriptions.append(sub)
+
+    UnsafeModuleChangeCallbackType = Callable[["SysrepoSession", str, int, Any], None]
+    """
+    Callback to be called when the change in the datastore occurs. Provides implicit 
+    session object instead of list of changes. THE CALLBACK SHOULD NEVER KEEP A
+    REFERENCE ON THE IMPLICIT SESSION OBJECT TO AVOID USER-AFTER-FREE BUGS.
+
+    :arg session:
+        Implicit session (do not stop) with information about the changed data.
+    :arg event:
+        Type of the callback event that has occurred. Can be one of: "update", "change",
+        "done", "abort", "enabled".
+    :arg req_id:
+        Request ID unique for the specific module name. Connected events for one request
+        ("change" and "done" for example) have the same request ID.
+    :arg private_data:
+        Private context opaque to sysrepo used when subscribing.
+
+    When event is one of ("update", "change"), if the callback raises an exception, the
+    changes will be rejected and the error will be forwarded to the client that made the
+    change. If the exception is a subclass of `SysrepoError`, the traceback will not be
+    sent to the logging system. For consistency and to avoid confusion with unexpected
+    errors, the callback should raise explicit `SysrepoValidationFailedError` exceptions
+    to reject changes.
+    """
+
+    def subscribe_module_change_unsafe(
+        self,
+        module: str,
+        xpath: Optional[str],
+        callback: UnsafeModuleChangeCallbackType,
+        *,
+        priority: int = 0,
+        no_thread: bool = False,
+        passive: bool = False,
+        done_only: bool = False,
+        enabled: bool = False,
+        private_data: Any = None,
+        asyncio_register: bool = False,
+    ) -> None:
+        """
+        Subscribe for changes made in the specified module. Implicit session object
+        is returned to callback instead of list of changes. When callback returns to
+        Sysrepo, the session is freed, so we cannot keep a reference on it and
+        schedule async code to run later. For this reason, async callbacks are NOT
+        allowed here.
+
+        :arg module:
+            Name of the module of interest for change notifications.
+        :arg xpath:
+            Optional xpath further filtering the changes that will be handled
+            by this subscription.
+        :arg callback:
+            Callback to be called when the change in the datastore occurs.
+        :arg priority:
+            Specifies the order in which the callbacks (**within module**) will
+            be called.
+        :arg no_thread:
+            There will be no thread created for handling this subscription
+            meaning no event will be processed! Default to `True` if
+            asyncio_register is `True`.
+        :arg passive:
+            The subscriber is not the "owner" of the subscribed data tree, just
+            a passive watcher for changes.
+        :arg done_only:
+            The subscriber does not support verification of the changes and
+            wants to be notified only after the changes has been applied in the
+            datastore, without the possibility to deny them.
+        :arg enabled:
+            The subscriber wants to be notified about the current configuration
+            at the moment of subscribing.
+        :arg private_data:
+            Private context passed to the callback function, opaque to sysrepo.
+        :arg asyncio_register:
+            Add the created subscription event pipe into asyncio event loop
+            monitored read file descriptors. Implies `no_thread=True`.
+        """
+        if self.is_implicit:
+            raise SysrepoUnsupportedError("cannot subscribe with implicit sessions")
+        if is_async_func(callback):
+            raise SysrepoUnsupportedError(
+                "cannot use unsafe subscription with async callback"
+            )
+        _check_subscription_callback(callback, self.UnsafeModuleChangeCallbackType)
+
+        sub = Subscription(
+            callback,
+            private_data,
+            asyncio_register=asyncio_register,
+            unsafe=True,
+        )
+        sub_p = ffi.new("sr_subscription_ctx_t **")
+
+        if asyncio_register:
+            no_thread = True  # we manage our own event loop
+        flags = _subscribe_flags(
+            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
+        )
         check_call(
             lib.sr_module_change_subscribe,
             self.cdata,

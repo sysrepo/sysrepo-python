@@ -35,6 +35,7 @@ class Subscription:
         include_implicit_defaults: bool = True,
         include_deleted_values: bool = False,
         extra_info: bool = False,
+        unsafe: bool = False,
     ):
         """
         :arg callback:
@@ -58,6 +59,8 @@ class Subscription:
             When True, the given callback is called with extra keyword arguments
             containing extra information of the sysrepo session that gave origin to the
             event
+        :arg unsafe:
+            When True, the given callback returns implicit session.
         """
         if is_async_func(callback) and not asyncio_register:
             raise ValueError(
@@ -78,6 +81,7 @@ class Subscription:
         self.cdata = None
         self.fd = -1
         self.handle = ffi.new_handle(self)
+        self.unsafe = unsafe
 
     def init(self, cdata) -> None:
         """
@@ -228,6 +232,9 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
         callback = subscription.callback
         private_data = subscription.private_data
         event_name = EVENT_NAMES[event]
+        if subscription.unsafe:
+            callback(session, event_name, req_id, private_data)
+            return lib.SR_ERR_OK
         if subscription.extra_info:
             try:
                 extra_info = {
