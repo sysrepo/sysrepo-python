@@ -1159,6 +1159,18 @@ class SysrepoSession:
             lib.sr_set_item_str, self.cdata, str2c(xpath), str2c(value), ffi.NULL, 0
         )
 
+    def discard_items(self, xpath: str) -> None:
+        """
+        Prepare to discard nodes matching the specified xpath (or all if not
+        set) previously set by the session connection. Usable only for the
+        operational datastore . These changes are applied only after calling
+        apply_changes().
+
+        :arg xpath:
+            Path identifier of the data element to be deleted.
+        """
+        check_call(lib.sr_discard_items, self.cdata, str2c(xpath))
+
     def delete_item(self, xpath: str) -> None:
         """
         Prepare to delete the nodes matching the specified xpath. These changes
