@@ -99,7 +99,7 @@ class OperSubscriptionTest(unittest.TestCase):
         with self.conn.start_session("operational") as op_sess:
             op_sess.set_extra_info("netopeer2", 12, getpass.getuser())
             oper_data = op_sess.get_data(
-                "/sysrepo-example:state", keep_empty_containers=True
+                "/sysrepo-example:state", keep_empty_containers=False
             )
             self.assertEqual(len(calls), 1)
-            self.assertEqual(oper_data, {"state": {}})
+            self.assertEqual(oper_data, {})
