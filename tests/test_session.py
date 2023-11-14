@@ -91,6 +91,26 @@ class SessionTest(unittest.TestCase):
             config = {"conf": {"system": {"hostname": "foobar"}}}
             sess.replace_config(config, "sysrepo-example")
 
+    def test_session_copy_config(self):
+        with self.conn.start_session("candidate") as sess:
+            config = {"conf": {"system": {"hostname": "foobar"}}}
+            sess.replace_config(config, "sysrepo-example")
+        with self.conn.start_session("running") as sess:
+            sess.copy_config("candidate", module_name="sysrepo-example")
+            data = sess.get_data("/sysrepo-example:conf")
+            self.assertEqual(data, {"conf": {"system": {"hostname": "foobar"}}})
+
+    def test_session_copy_config_errors(self):
+        with self.conn.start_session("candidate") as sess:
+            config = {"conf": {"system": {"hostname": "foobar"}}}
+            sess.replace_config(config, "sysrepo-example")
+        with self.conn.start_session("running") as sess:
+            with self.assertRaises(ValueError):
+                sess.copy_config("invalid")
+        with self.conn.start_session("running") as sess:
+            with self.assertRaises(sysrepo.SysrepoNotFoundError):
+                sess.copy_config("candidate", module_name="not-found")
+
     def test_session_set_item(self):
         def iface(name, field):
             return "/sysrepo-example:conf/network/interface[name=%r]/%s" % (name, field)

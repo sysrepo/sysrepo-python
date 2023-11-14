@@ -43,6 +43,15 @@ def main():
         output is printed to stdout.
         """,
     )
+    group.add_argument(
+        "-C",
+        "--copy-from",
+        metavar="DATASTORE",
+        choices=("running", "startup", "operational", "candidate"),
+        help="""
+        Perform a copy-config from a datastore.
+        """,
+    )
     parser.add_argument(
         "-v", "--verbose", action="count", default=0, help="Increase verbosity."
     )
@@ -106,6 +115,9 @@ def main():
                         data.print_file(
                             sys.stdout, args.format, pretty=True, with_siblings=True
                         )
+
+                elif args.copy_from:
+                    sess.copy_config(args.copy_from)
 
                 elif args.rpc:
                     with conn.get_ly_ctx() as ctx:
