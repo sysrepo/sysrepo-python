@@ -1314,6 +1314,35 @@ class SysrepoSession:
         dnode = module.parse_data_dict(config, strict=strict, validate=False)
         self.replace_config_ly(dnode, module_name, timeout_ms=timeout_ms)
 
+    def copy_config(
+        self, src_datastore: str, module_name: str = None, timeout_ms: int = 0
+    ) -> None:
+        """
+        Replaces a conventional datastore with the contents of another conventional
+        datastore. If the module is specified, limits the operation only to the
+        specified module. If it is not specified, the operation is performed on all
+        modules.
+
+        Note that copying from candidate to running or vice versa causes the candidate
+        datastore to revert to original behavior of mirroring running datastore
+        (datastores).
+
+        Required WRITE access.
+
+        :arg src_datastore:
+            Source datastore to copy configuration from. Can be one of `running`,
+            `startup`, `operational` or `candidate`. Must be a different datastore
+            than the session's.
+        :arg module_name:
+            Optional module name that limits the copy operation only to this module.
+        :arg timeout_ms:
+            Configuration callback timeout in milliseconds. If 0, default is used.
+        """
+        if self.is_implicit:
+            raise SysrepoUnsupportedError("cannot copy config from implicit sessions")
+        ds = datastore_value(src_datastore)
+        check_call(lib.sr_copy_config, self.cdata, str2c(module_name), ds, timeout_ms)
+
     def validate(self, module_name: str = None) -> None:
         """
         Perform the validation a datastore and any changes made in the current
