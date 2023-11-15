@@ -101,6 +101,9 @@ int sr_session_set_orig_name(sr_session_ctx_t *session, const char *);
 int sr_session_get_orig_data(sr_session_ctx_t *session, uint32_t idx, uint32_t *size, const void **data);
 int sr_session_push_orig_data(sr_session_ctx_t * session, uint32_t size, const void *data);
 
+int sr_lock(sr_session_ctx_t *session, const char *module_name, uint32_t timeout_ms);
+int sr_unlock(sr_session_ctx_t *session, const char *module_name);
+
 typedef enum sr_val_type_e {
 	SR_UNKNOWN_T,
 	SR_LIST_T,
