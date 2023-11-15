@@ -111,6 +111,42 @@ class SysrepoSession:
         """
         return datastore_name(lib.sr_session_get_ds(self.cdata))
 
+    def lock(self, module_name: str = "", timeout_ms: int = 0) -> None:
+        """
+        Locks the data of the specified module or the whole datastore.
+        :arg module_name:
+            Optional name of the module to be locked.
+        :arg timeout_ms:
+            Optional timeout in ms for waiting. If 0, no waiting is performed.
+        """
+        module = str2c(module_name) if len(module_name) > 0 else ffi.NULL
+        check_call(lib.sr_lock, self.cdata, module, timeout_ms)
+
+    def unlock(self, module_name: str = "") -> None:
+        """
+        Unlocks the data of the specified module or the whole datastore.
+        :arg module_name:
+            Optional name of the module to be locked.
+        """
+        module = str2c(module_name) if len(module_name) > 0 else ffi.NULL
+        check_call(lib.sr_unlock, self.cdata, module)
+
+    @contextmanager
+    def locked(self, module_name: str = "", timeout_ms: int = 0):
+        """
+        Convenience method which manages un-/locking the data of the specified module
+        or the whole datastore.
+        :arg module_name:
+            Optional name of the module to be locked.
+        :arg timeout_ms:
+            Optional timeout in ms for waiting. If 0, no waiting is performed.
+        """
+        try:
+            self.lock(module_name, timeout_ms)
+            yield
+        finally:
+            self.unlock(module_name)
+
     def switch_datastore(self, datastore: str) -> None:
         """
         Change datastore which the session operates on. All subsequent calls will be

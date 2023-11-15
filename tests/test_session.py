@@ -3,6 +3,8 @@
 
 import logging
 import os
+import threading
+import time
 import types
 import unittest
 
@@ -162,3 +164,43 @@ class SessionTest(unittest.TestCase):
 
             with self.assertRaises(sysrepo.SysrepoUnsupportedError):
                 sess.get_user()
+
+    def test_basic_session_lock(self):
+        # lock whole datastore
+        with self.conn.start_session("running") as sess:
+            with sess.locked():
+                config = {"conf": {"system": {"hostname": "foobar1"}}}
+                sess.replace_config(config, "sysrepo-example")
+                sess.apply_changes()
+
+        # lock specific module name with a timeout
+        with self.conn.start_session("running") as sess:
+            with sess.locked("sysrepo-example", 1000):
+                config = {"conf": {"system": {"hostname": "foobar2"}}}
+                sess.replace_config(config, "sysrepo-example")
+                sess.apply_changes()
+
+    def test_concurrent_session_lock(self):
+        def function_thread_one():
+            with self.conn.start_session("running") as sess:
+                with sess.locked():
+                    config = {"conf": {"system": {"hostname": "foobar1"}}}
+                    sess.replace_config(config, "sysrepo-example")
+                    sess.apply_changes()
+                    time.sleep(3)  # keep the lock active
+
+        def function_thread_two():
+            time.sleep(1)
+            with self.conn.start_session("running") as sess:
+                with self.assertRaises(sysrepo.SysrepoLockedError):
+                    with sess.locked():
+                        pass
+
+        thread_one = threading.Thread(target=function_thread_one)
+        thread_two = threading.Thread(target=function_thread_two)
+
+        thread_one.start()
+        thread_two.start()
+
+        thread_one.join()
+        thread_two.join()

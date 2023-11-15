@@ -153,6 +153,7 @@ Supported Features
    ``sr_edit_batch()``, ``sr_validate()``, ``sr_apply_changes()``,
    ``sr_discard_changes()``, ``sr_replace_config()``)
 -  Get data (``sr_get_data()``, ``sr_get_item()``, ``sr_get_items()``)
+-  Module locking (``sr_*lock*``)
 
 __ https://pypi.org/project/libyang/
 .. _async: https://docs.python.org/3/library/asyncio-task.html#coroutine
@@ -163,7 +164,6 @@ Not Yet Supported Features
 All other features are not yet supported by sysrepo-python. The most notable
 are:
 
--  Module locking (``sr_*lock*``)
 -  Module management (``sr_*_module_*``)
 
 Contributing
