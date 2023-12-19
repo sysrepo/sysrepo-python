@@ -208,6 +208,9 @@ typedef enum sr_subscr_flag_e {
 	SR_SUBSCR_ENABLED,
 	SR_SUBSCR_UPDATE,
 	SR_SUBSCR_OPER_MERGE,
+	SR_SUBSCR_THREAD_SUSPEND,
+	SR_SUBSCR_OPER_POLL_DIFF,
+	SR_SUBSCR_FILTER_ORIG,
 	...
 } sr_subscr_flag_t;
 

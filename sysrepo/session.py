@@ -326,6 +326,7 @@ class SysrepoSession:
         passive: bool = False,
         done_only: bool = False,
         enabled: bool = False,
+        filter_origin: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
         include_implicit_defaults: bool = True,
@@ -359,6 +360,9 @@ class SysrepoSession:
         :arg enabled:
             The subscriber wants to be notified about the current configuration
             at the moment of subscribing.
+        :arg filter_origin:
+            Filter events on the originator side to unburden the subscriber, but
+            results in 0 value for filtered-out changes in the subscriber infos.
         :arg private_data:
             Private context passed to the callback function, opaque to sysrepo.
         :arg asyncio_register:
@@ -390,7 +394,11 @@ class SysrepoSession:
         if asyncio_register:
             no_thread = True  # we manage our own event loop
         flags = _subscribe_flags(
-            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
+            no_thread=no_thread,
+            passive=passive,
+            done_only=done_only,
+            enabled=enabled,
+            filter_origin=filter_origin,
         )
 
         check_call(
@@ -444,6 +452,7 @@ class SysrepoSession:
         passive: bool = False,
         done_only: bool = False,
         enabled: bool = False,
+        filter_origin: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
     ) -> None:
@@ -478,6 +487,9 @@ class SysrepoSession:
         :arg enabled:
             The subscriber wants to be notified about the current configuration
             at the moment of subscribing.
+        :arg filter_origin:
+            Filter events on the originator side to unburden the subscriber, but
+            results in 0 value for filtered-out changes in the subscriber infos.
         :arg private_data:
             Private context passed to the callback function, opaque to sysrepo.
         :arg asyncio_register:
@@ -503,7 +515,11 @@ class SysrepoSession:
         if asyncio_register:
             no_thread = True  # we manage our own event loop
         flags = _subscribe_flags(
-            no_thread=no_thread, passive=passive, done_only=done_only, enabled=enabled
+            no_thread=no_thread,
+            passive=passive,
+            done_only=done_only,
+            enabled=enabled,
+            filter_origin=filter_origin,
         )
         check_call(
             lib.sr_module_change_subscribe,
@@ -1615,7 +1631,12 @@ def _get_oper_flags(no_state=False, no_config=False, no_subs=False, no_stored=Fa
 
 # -------------------------------------------------------------------------------------
 def _subscribe_flags(
-    no_thread=False, passive=False, done_only=False, enabled=False, oper_merge=False
+    no_thread=False,
+    passive=False,
+    done_only=False,
+    enabled=False,
+    oper_merge=False,
+    filter_origin=False,
 ):
     flags = 0
     if no_thread:
@@ -1628,6 +1649,8 @@ def _subscribe_flags(
         flags |= lib.SR_SUBSCR_ENABLED
     if oper_merge:
         flags |= lib.SR_SUBSCR_OPER_MERGE
+    if filter_origin:
+        flags |= lib.SR_SUBSCR_FILTER_ORIG
     return flags
 
 
