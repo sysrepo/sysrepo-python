@@ -1472,7 +1472,17 @@ class SysrepoSession:
         if not sr_data_p[0]:
             raise SysrepoInternalError("sr_rpc_send_tree returned NULL")
 
-        return self.new_dnode(sr_data_p[0].tree)
+        ctx = self.acquire_context()
+        dnode = libyang.DNode.new(ctx, sr_data_p[0].tree)
+
+        # customize the free method to use the sysrepo free
+        def sysrepo_free(dnode_src):
+            lib.sr_release_data(sr_data_p[0])
+            self.release_context()
+
+        dnode.free_func = sysrepo_free
+
+        return dnode
 
     def rpc_send(
         self,
