@@ -4,14 +4,14 @@
 from contextlib import contextmanager
 import logging
 import signal
-from typing import Dict, Optional, Sequence
+from typing import Dict, Optional, Sequence, Tuple
 
 import libyang
 
 from _sysrepo import ffi, lib
 from .errors import SysrepoInternalError, check_call
 from .session import SysrepoSession, datastore_value
-from .util import str2c
+from .util import c2str, str2c
 
 
 LOG = logging.getLogger(__name__)
@@ -279,3 +279,31 @@ class SysrepoConnection:
         check_call(
             lib.sr_enable_module_feature, self.cdata, str2c(name), str2c(feature_name)
         )
+
+    def get_module_ds_access(
+        self, module_name: str, datastore: str = "running"
+    ) -> Tuple[str, str, int]:
+        """
+        Learn about module permissions.
+
+        :arg str module_name:
+            Name of the module.
+        :arg str datastore:
+            Name of the datastore that will be operated on.
+        :returns:
+            The owner, group and permissions of the given module name.
+            Owner and group are names, not numeric ids.
+        """
+        owner = ffi.new("char **owner")
+        group = ffi.new("char **group")
+        perm = ffi.new("mode_t *perm")
+        check_call(
+            lib.sr_get_module_ds_access,
+            self.cdata,
+            str2c(module_name),
+            datastore_value(datastore),
+            owner,
+            group,
+            perm,
+        )
+        return (c2str(owner[0]), c2str(group[0]), perm[0])

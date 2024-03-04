@@ -1,8 +1,10 @@
 # Copyright (c) 2020 6WIND S.A.
 # SPDX-License-Identifier: BSD-3-Clause
 
+import grp
 import logging
 import os
+import pwd
 import unittest
 
 import libyang
@@ -77,3 +79,11 @@ class ConnectionTest(unittest.TestCase):
                 data = [x for x in data if x["name"] == "sysrepo-example"][0]
                 self.assertIn("feature", data)
             conn.remove_module("sysrepo-example")
+
+    def test_conn_get_module_infos(self):
+        with sysrepo.SysrepoConnection() as conn:
+            conn.install_module(YANG_FILE)
+            owner, group, perm = conn.get_module_ds_access("sysrepo-example")
+            self.assertEqual(pwd.getpwnam(owner).pw_uid, os.geteuid())
+            self.assertEqual(grp.getgrnam(group).gr_gid, os.getegid())
+            self.assertEqual(perm, 0o600)
