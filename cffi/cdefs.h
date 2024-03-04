@@ -292,3 +292,6 @@ int sr_notif_subscribe_tree(sr_session_ctx_t *, const char *module_name, const c
 	void *priv, sr_subscr_options_t, sr_subscription_ctx_t **);
 
 int sr_notif_send_tree(sr_session_ctx_t *, struct lyd_node *notif, uint32_t timeout_ms, int wait);
+
+typedef int... mode_t;
+int sr_get_module_ds_access(sr_conn_ctx_t *conn, const char *module_name, int mod_ds, char **owner, char **group, mode_t *perm);

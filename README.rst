@@ -158,10 +158,10 @@ Supported Features
 __ https://pypi.org/project/libyang/
 .. _async: https://docs.python.org/3/library/asyncio-task.html#coroutine
 
-Not Yet Supported Features
---------------------------
+Partially Supported Features
+----------------------------
 
-All other features are not yet supported by sysrepo-python. The most notable
+All other features are not yet or only partially supported by sysrepo-python. The most notable
 are:
 
 -  Module management (``sr_*_module_*``)
