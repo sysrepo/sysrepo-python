@@ -12,4 +12,10 @@ tests:
 format:
 	tox -e format
 
-.PHONY: lint tests format
+SRPY_START_COMMIT ?= origin/master
+SRPY_END_COMMIT ?= HEAD
+
+check-commits:
+	./check-commits.sh $(SRPY_START_COMMIT)..$(SRPY_END_COMMIT)
+
+.PHONY: lint tests format check-commits
