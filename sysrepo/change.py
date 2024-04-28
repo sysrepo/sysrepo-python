@@ -196,7 +196,7 @@ def update_config_cache(conf: Dict, changes: List[Change]) -> None:
     Maintain a configuration dict from a list of Change objects.
 
     This function is intended to be used in module change callbacks if they want to
-    preserve a full view of all the configuration without asking sysrepo everytime the
+    preserve a full view of all the configuration without asking sysrepo every time the
     callback is invoked.
 
     :arg conf:
