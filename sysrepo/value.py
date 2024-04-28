@@ -28,7 +28,7 @@ class Value:
         to ``None``.
         """
         if cls is Value:
-            raise TypeError("Value cannot be instanciated directly, use subclasses")
+            raise TypeError("Value cannot be instantiated directly, use subclasses")
         i = 0
         new_args = [cls]
         if cls.value_field is not None:

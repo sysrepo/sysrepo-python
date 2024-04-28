@@ -157,7 +157,7 @@ class Subscription:
                 self.process_events()
             else:
                 # Sysrepo does not care about the result of the callback.
-                # This will raise the exception here if any occured in the task
+                # This will raise the exception here if any occurred in the task
                 # and will be logged (i.e. not lost).
                 self.tasks.pop(task_id, None)
                 task.result()
