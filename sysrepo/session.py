@@ -1511,7 +1511,7 @@ class SysrepoSession:
         :arg strip_prefixes:
             If True, remove YANG module prefixes from dictionary keys.
         :arg include_implicit_defaults:
-            Include leaves with implicit default values in the retured dict.
+            Include leaves with implicit default values in the returned dict.
         :arg trim_default_values:
             Exclude leaves when their value equals the default.
         :arg keep_empty_containers:
