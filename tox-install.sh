@@ -33,7 +33,7 @@ download()
 	fi
 }
 
-ly_branch="${LIBYANG_BRANCH:-master}"
+ly_branch="${LIBYANG_BRANCH:-devel}"
 ly_src="${LIBYANG_SRC:-$toxdir/.ly.$ly_branch.src}"
 ly_prefix="$toxdir/.ly.$ly_branch"
 ly_build="$toxdir/.ly.$ly_branch.build"
@@ -61,7 +61,7 @@ export LIBYANG_HEADERS="$ly_prefix/include"
 export LIBYANG_LIBRARIES="$ly_prefix/lib"
 export LIBYANG_EXTRA_LDFLAGS="-Wl,--enable-new-dtags,-rpath=$LIBYANG_LIBRARIES"
 
-sr_branch="${SYSREPO_BRANCH:-master}"
+sr_branch="${SYSREPO_BRANCH:-devel}"
 sr_src="${SYSREPO_SRC:-$toxdir/.sr.$sr_branch.src}"
 sr_prefix="$toxdir/.sr.$sr_branch"
 sr_build="$toxdir/.sr.$sr_branch.build"

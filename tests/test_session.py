@@ -7,6 +7,7 @@ import threading
 import time
 import types
 import unittest
+from unittest.mock import ANY
 
 import sysrepo
 
@@ -63,6 +64,7 @@ class SessionTest(unittest.TestCase):
                 "name": "sysrepo-example",
                 "namespace": "n",
                 "feature": ["turbo"],
+                "location": ANY,
             }
             self.assertIn(modinfo, data)
 
