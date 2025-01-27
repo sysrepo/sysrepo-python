@@ -327,6 +327,7 @@ class SysrepoSession:
     to reject changes.
     """
 
+    # pylint: disable=too-many-arguments
     def subscribe_module_change(
         self,
         module: str,
@@ -338,6 +339,7 @@ class SysrepoSession:
         passive: bool = False,
         done_only: bool = False,
         enabled: bool = False,
+        update: bool = False,
         filter_origin: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
@@ -372,6 +374,8 @@ class SysrepoSession:
         :arg enabled:
             The subscriber wants to be notified about the current configuration
             at the moment of subscribing.
+        :arg update:
+            The subscriber wants to be called before the configuration is applied.
         :arg filter_origin:
             Filter events on the originator side to unburden the subscriber, but
             results in 0 value for filtered-out changes in the subscriber infos.
@@ -410,6 +414,7 @@ class SysrepoSession:
             passive=passive,
             done_only=done_only,
             enabled=enabled,
+            update=update,
             filter_origin=filter_origin,
         )
 
@@ -464,6 +469,7 @@ class SysrepoSession:
         passive: bool = False,
         done_only: bool = False,
         enabled: bool = False,
+        update: bool = False,
         filter_origin: bool = False,
         private_data: Any = None,
         asyncio_register: bool = False,
@@ -499,6 +505,8 @@ class SysrepoSession:
         :arg enabled:
             The subscriber wants to be notified about the current configuration
             at the moment of subscribing.
+        :arg update:
+            The subscriber wants to be called before the configuration is applied.
         :arg filter_origin:
             Filter events on the originator side to unburden the subscriber, but
             results in 0 value for filtered-out changes in the subscriber infos.
@@ -531,6 +539,7 @@ class SysrepoSession:
             passive=passive,
             done_only=done_only,
             enabled=enabled,
+            update=update,
             filter_origin=filter_origin,
         )
         check_call(
@@ -1659,6 +1668,7 @@ def _subscribe_flags(
     enabled=False,
     oper_merge=False,
     filter_origin=False,
+    update=False,
 ):
     flags = 0
     if no_thread:
@@ -1669,6 +1679,8 @@ def _subscribe_flags(
         flags |= lib.SR_SUBSCR_DONE_ONLY
     if enabled:
         flags |= lib.SR_SUBSCR_ENABLED
+    if update:
+        flags |= lib.SR_SUBSCR_UPDATE
     if oper_merge:
         flags |= lib.SR_SUBSCR_OPER_MERGE
     if filter_origin:
