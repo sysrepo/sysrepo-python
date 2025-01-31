@@ -416,7 +416,7 @@ class SysrepoSession:
 
         self.subscriptions.append(sub)
 
-    UnsafeModuleChangeCallbackType = Callable[["SysrepoSession", str, int, Any], None]
+    UnsafeModuleChangeCallbackType = Callable[["SysrepoSession", str, str, int, Any], None]
     """
     Callback to be called when the change in the datastore occurs. Provides implicit 
     session object instead of list of changes. THE CALLBACK SHOULD NEVER KEEP A
@@ -424,6 +424,8 @@ class SysrepoSession:
 
     :arg session:
         Implicit session (do not stop) with information about the changed data.
+    :arg xpath:
+        The xpath to the node or the module.
     :arg event:
         Type of the callback event that has occurred. Can be one of: "update", "change",
         "done", "abort", "enabled".
