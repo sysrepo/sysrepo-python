@@ -314,8 +314,9 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
         current_config = {}
         expected_changes = []
 
-        def module_change_cb(session, event, req_id, private_data):
+        def module_change_cb(session, xpath, event, req_id, private_data):
             self.assertIsInstance(session, SysrepoSession)
+            self.assertEqual(xpath, "/sysrepo-example:conf")
             self.assertIn(event, ("change", "done", "abort"))
             self.assertIsInstance(req_id, int)
             self.assertIs(private_data, priv)

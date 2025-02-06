@@ -233,7 +233,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
         private_data = subscription.private_data
         event_name = EVENT_NAMES[event]
         if subscription.unsafe:
-            callback(session, event_name, req_id, private_data)
+            callback(session, root_xpath, event_name, req_id, private_data)
             return lib.SR_ERR_OK
         if subscription.extra_info:
             try:
