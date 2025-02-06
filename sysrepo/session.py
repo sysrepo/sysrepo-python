@@ -11,6 +11,7 @@ import libyang
 from _sysrepo import ffi, lib
 from .change import Change
 from .errors import (
+    SysrepoError,
     SysrepoInternalError,
     SysrepoNotFoundError,
     SysrepoUnsupportedError,
@@ -164,7 +165,7 @@ class SysrepoSession:
         ds = datastore_value(datastore)
         check_call(lib.sr_session_switch_ds, self.cdata, ds)
 
-    def set_error(self, message: str):
+    def set_error(self, err: BaseException):
         """
         Set detailed error information into provided session. Used to notify the client
         library about errors that occurred in the application code. Does not print the
@@ -173,13 +174,24 @@ class SysrepoSession:
         Intended for change, RPC/action, or operational callbacks to be used on the
         provided session.
 
-        :arg str message:
-            The detailed error message.
+        :arg BaseException err:
+            The python exception object that carries the error information.
         """
         if not self.is_implicit:
             raise SysrepoUnsupportedError("can only report errors on implicit sessions")
+        if isinstance(err, SysrepoError):
+            code = err.rc
+            message = err.msg
+        else:
+            code = lib.SR_ERR_CALLBACK_FAILED
+            message = str(err)
         check_call(
-            lib.sr_session_set_error_message, self.cdata, str2c("%s"), str2c(message)
+            lib.sr_session_set_error,
+            self.cdata,
+            ffi.NULL,
+            code,
+            str2c("%s"),
+            str2c(message),
         )
 
     def get_originator_name(self) -> str:

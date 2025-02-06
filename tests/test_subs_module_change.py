@@ -74,7 +74,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             # 2.
             sent_config = {"conf": {"system": {"hostname": "INVALID"}}}
             expected_changes = []
-            with self.assertRaises(sysrepo.SysrepoCallbackFailedError):
+            with self.assertRaises(sysrepo.SysrepoValidationFailedError):
                 ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             # 3.
             sent_config = {
@@ -347,7 +347,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             # 2.
             sent_config = {"conf": {"system": {"hostname": "INVALID"}}}
             expected_changes = []
-            with self.assertRaises(sysrepo.SysrepoCallbackFailedError):
+            with self.assertRaises(sysrepo.SysrepoValidationFailedError):
                 ch_sess.replace_config(sent_config, "sysrepo-example", strict=True)
             # 3.
             sent_config = {

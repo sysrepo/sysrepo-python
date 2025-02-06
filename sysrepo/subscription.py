@@ -304,7 +304,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
             and isinstance(session, SysrepoSession)
             and isinstance(xpath, str)
         ):
-            session.set_error(e.msg)
+            session.set_error(e)
         return e.rc
 
     except BaseException as e:
@@ -317,7 +317,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
             and isinstance(session, SysrepoSession)
             and isinstance(xpath, str)
         ):
-            session.set_error(str(e))
+            session.set_error(e)
         return lib.SR_ERR_CALLBACK_FAILED
 
 
@@ -421,7 +421,7 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
 
     except SysrepoError as e:
         if e.msg and isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(e.msg)
+            session.set_error(e)
         return e.rc
 
     except BaseException as e:
@@ -430,7 +430,7 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(str(e))
+            session.set_error(e)
         return lib.SR_ERR_CALLBACK_FAILED
 
 
@@ -548,7 +548,7 @@ def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node,
 
     except SysrepoError as e:
         if e.msg and isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(e.msg)
+            session.set_error(e)
         return e.rc
 
     except BaseException as e:
@@ -557,7 +557,7 @@ def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node,
         # We are in a C callback, we cannot let any error pass
         LOG.exception("%r callback failed", locals().get("callback", priv))
         if isinstance(session, SysrepoSession) and isinstance(xpath, str):
-            session.set_error(str(e))
+            session.set_error(e)
         return lib.SR_ERR_CALLBACK_FAILED
 
 
