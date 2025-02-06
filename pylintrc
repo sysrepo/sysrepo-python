@@ -71,6 +71,7 @@ disable=
 	missing-docstring,
 	suppressed-message,
 	too-many-lines,
+	too-many-positional-arguments,
 	unnecessary-pass,
 	unused-argument,
 	use-implicit-booleaness-not-comparison-to-string,
