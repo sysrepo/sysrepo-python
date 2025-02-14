@@ -45,7 +45,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
         expected_changes = []
 
         def module_change_cb(event, req_id, changes, private_data):
-            self.assertIn(event, ("change", "done", "abort"))
+            self.assertIn(event, ("change", "done", "abort", "update"))
             self.assertIs(private_data, priv)
             for c in changes:
                 if c.xpath == "/sysrepo-example:conf/system/hostname":
@@ -61,6 +61,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             "/sysrepo-example:conf",
             module_change_cb,
             private_data=priv,
+            update=True,
         )
 
         with self.conn.start_session("running") as ch_sess:
@@ -316,7 +317,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
 
         def module_change_cb(session, event, req_id, private_data):
             self.assertIsInstance(session, SysrepoSession)
-            self.assertIn(event, ("change", "done", "abort"))
+            self.assertIn(event, ("change", "done", "abort", "update"))
             self.assertIsInstance(req_id, int)
             self.assertIs(private_data, priv)
             changes = list(session.get_changes("/sysrepo-example:conf//."))
@@ -334,6 +335,7 @@ class ModuleChangeSubscriptionTest(unittest.TestCase):
             "/sysrepo-example:conf",
             module_change_cb,
             private_data=priv,
+            update=True,
         )
 
         with self.conn.start_session("running") as ch_sess:
