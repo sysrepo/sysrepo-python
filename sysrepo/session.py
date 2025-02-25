@@ -573,6 +573,10 @@ class SysrepoSession:
             * netconf_id: the NETCONF session ID set for the event originator
                 sysrepo session
             * user: the effective username of the event originator sysrepo session
+            * parent_xpath: XPath to an existing parent of the requested nodes. It is 
+                None for top-level nodes. Caller is supposed to append the requested 
+                nodes to this data subtree and return either the original parent or a 
+                top-level node.
 
     The callback is expected to return a python dictionary containing the operational
     data. The dictionary should be in the libyang "dict" format. It will be parsed to a
