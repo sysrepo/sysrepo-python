@@ -265,7 +265,8 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
                     )
                 )
                 task = subscription.loop.create_task(
-                    callback(event_name, req_id, changes, private_data, **extra_info)
+                    callback(event_name, req_id, changes, private_data, **extra_info),
+                    name=f"sr-module-change-{event_name}-{req_id}-{xpath}",
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, event_name)
@@ -379,7 +380,8 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
 
             if task_id not in subscription.tasks:
                 task = subscription.loop.create_task(
-                    callback(req_xpath, private_data, **extra_info)
+                    callback(req_xpath, private_data, **extra_info),
+                    name=f"sr-oper-data-{req_id}-{xpath}",
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, "oper")
@@ -502,7 +504,8 @@ def rpc_callback(session, sub_id, xpath, input_node, event, req_id, output_node,
 
             if task_id not in subscription.tasks:
                 task = subscription.loop.create_task(
-                    callback(xpath, input_dict, event_name, private_data, **extra_info)
+                    callback(xpath, input_dict, event_name, private_data, **extra_info),
+                    name=f"sr-rpc-{xpath}",
                 )
                 task.add_done_callback(
                     functools.partial(subscription.task_done, task_id, event_name)
@@ -624,7 +627,13 @@ def event_notif_tree_callback(session, sub_id, notif_type, notif, timestamp, pri
         if is_async_func(callback):
             task = subscription.loop.create_task(
                 callback(
-                    xpath, notif_type, notif_dict, timestamp, private_data, **extra_info
+                    xpath,
+                    notif_type,
+                    notif_dict,
+                    timestamp,
+                    private_data,
+                    **extra_info,
+                    name=f"sr-rpc-event-notif-{xpath}",
                 )
             )
             task.add_done_callback(
