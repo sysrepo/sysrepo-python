@@ -1465,7 +1465,7 @@ class SysrepoSession:
 
     def rpc_send_ly(
         self, rpc_input: libyang.DNode, timeout_ms: int = 0
-    ) -> libyang.DNode:
+    ) -> Optional[libyang.DNode]:
         """
         Send an RPC/action and wait for the result.
 
@@ -1480,7 +1480,7 @@ class SysrepoSession:
 
         :returns:
             The RPC/action output tree. Allocated dynamically and must be freed by the
-            caller.
+            caller. If the RPC/action did not return any output, None is returned.
         :raises SysrepoError:
             If the RPC/action callback failed.
         """
@@ -1491,7 +1491,7 @@ class SysrepoSession:
         sr_data_p = ffi.new("sr_data_t **")
         check_call(lib.sr_rpc_send_tree, self.cdata, in_dnode, timeout_ms, sr_data_p)
         if not sr_data_p[0]:
-            raise SysrepoInternalError("sr_rpc_send_tree returned NULL")
+            return None
 
         ctx = self.acquire_context()
         dnode = libyang.DNode.new(ctx, sr_data_p[0].tree)
@@ -1515,7 +1515,7 @@ class SysrepoSession:
         include_implicit_defaults: bool = False,
         trim_default_values: bool = False,
         keep_empty_containers: bool = False,
-    ) -> Dict:
+    ) -> Optional[Dict]:
         """
         Same as rpc_send_ly() but takes a python dictionary and a YANG module name as
         input arguments.
@@ -1539,7 +1539,8 @@ class SysrepoSession:
             Include empty (non-presence) containers.
 
         :returns:
-            A python dictionary with the RPC/action output tree.
+            A python dictionary with the RPC/action output tree or None if the RPC/action
+            did not return any output.
         """
         rpc = {}
         libyang.xpath_set(rpc, xpath, input_dict)
@@ -1552,6 +1553,9 @@ class SysrepoSession:
             out_dnode = self.rpc_send_ly(in_dnode, timeout_ms=timeout_ms)
         finally:
             in_dnode.free()
+
+        if out_dnode is None:
+            return None
 
         try:
             out_dict = out_dnode.print_dict(
