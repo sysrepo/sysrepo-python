@@ -221,6 +221,11 @@ int sr_get_event_pipe(sr_subscription_ctx_t *, int *);
 int sr_subscription_process_events(sr_subscription_ctx_t *, sr_session_ctx_t *, struct timespec *);
 int sr_unsubscribe(sr_subscription_ctx_t *);
 
+int sr_nacm_init(sr_session_ctx_t *, sr_subscr_options_t, sr_subscription_ctx_t **);
+int sr_nacm_set_user(sr_session_ctx_t *, const char *);
+const char* sr_nacm_get_user(sr_session_ctx_t *);
+void sr_nacm_destroy(void);
+
 typedef enum sr_event_e {
 	SR_EV_UPDATE,
 	SR_EV_CHANGE,

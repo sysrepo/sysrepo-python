@@ -39,6 +39,7 @@ class SysrepoSession:
         "cdata",
         "is_implicit",
         "subscriptions",
+        "nacm_subscription",
     )
 
     # begin: general
@@ -52,9 +53,32 @@ class SysrepoSession:
         self.cdata = cdata
         self.is_implicit = implicit
         self.subscriptions = []
+        self.nacm_subscription = None
 
     def __enter__(self) -> "SysrepoSession":
         return self
+
+    def init_nacm(self, nacm_user: str, no_thread: bool = False) -> None:
+        """
+        Set the NACM user for this session. This is used to determine the effective user
+        for NACM checks.
+
+        :arg nacm_user:
+            The NACM user name to be set.
+        :arg no_thread:
+            If True, no thread will be created for handling NACM subscription meaning.
+            Default to False.
+        """
+        flags = _subscribe_flags(
+            no_thread=no_thread,
+        )
+        if self.is_implicit:
+            raise SysrepoUnsupportedError("cannot set NACM for implicit sessions")
+
+        sub_p = ffi.new("sr_subscription_ctx_t **")
+        check_call(lib.sr_nacm_init, self.cdata, flags, sub_p)
+        check_call(lib.sr_nacm_set_user, self.cdata, str2c(nacm_user))
+        self.nacm_subscription = sub_p
 
     def __exit__(self, *args, **kwargs) -> None:
         self.stop()
@@ -70,6 +94,10 @@ class SysrepoSession:
             return  # already stopped
         if self.is_implicit:
             raise SysrepoUnsupportedError("implicit sessions cannot be stopped")
+        if self.nacm_subscription is not None:
+            check_call(lib.sr_unsubscribe, self.nacm_subscription[0])
+            self.nacm_subscription = None
+            lib.sr_nacm_destroy()
 
         # clear subscriptions
         while self.subscriptions:

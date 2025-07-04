@@ -206,3 +206,44 @@ class SessionTest(unittest.TestCase):
 
         thread_one.join()
         thread_two.join()
+
+    def test_nacm(self):
+        with self.conn.start_session("running") as sess:
+            config = {"conf": {"system": {"hostname": "foobar1"}}}
+            sess.replace_config(config, "sysrepo-example")
+            nacm_config = {
+                "ietf-netconf-acm:nacm": {
+                    "enable-nacm": True,
+                    "read-default": "deny",
+                    "groups": {
+                        "group": [
+                            {"name": "admin", "user-name": ["john"]},
+                        ]
+                    },
+                    "rule-list": [
+                        {
+                            "name": "sysrepo-example-permit",
+                            "group": ["admin"],
+                            "rule": [
+                                {
+                                    "name": "sysrepo-example-permit-read",
+                                    "module-name": "sysrepo-example",
+                                    "access-operations": "read",
+                                    "action": "permit",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            }
+            sess.edit_batch(nacm_config, "ietf-netconf-acm", strict=True)
+            sess.apply_changes()
+
+        # read access to sysrepo-example is allowed, but write is not for user 'john'
+        with self.conn.start_session("running") as sess:
+            sess.init_nacm("john")
+            data = sess.get_data("/sysrepo-example:conf")
+            self.assertEqual(data["conf"]["system"]["hostname"], "foobar1")
+            with self.assertRaises(sysrepo.SysrepoUnauthorizedError):
+                sess.set_item("/sysrepo-example:conf/system/hostname", "barfoo1")
+                sess.apply_changes()
