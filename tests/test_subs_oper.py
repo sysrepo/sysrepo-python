@@ -84,6 +84,8 @@ class OperSubscriptionTest(unittest.TestCase):
             self.assertEqual(getpass.getuser(), kwargs["user"])
             self.assertIn("netconf_id", kwargs)
             self.assertEqual(kwargs["netconf_id"], 12)
+            self.assertIn("parent_xpath", kwargs)
+            self.assertIsNone(kwargs["parent_xpath"])
             calls.append((xpath, private_data, kwargs))
             return {"state": {}}
 
