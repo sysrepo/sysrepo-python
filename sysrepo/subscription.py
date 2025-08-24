@@ -368,9 +368,14 @@ def oper_data_callback(session, sub_id, module, xpath, req_xpath, req_id, parent
         callback = subscription.callback
         private_data = subscription.private_data
         if subscription.extra_info:
+            parent_xpath = None
+            if parent[0]:
+                with session.get_ly_ctx() as ly_ctx:
+                    parent_xpath = DNode.new(ly_ctx, parent[0]).path()
             extra_info = {
                 "netconf_id": session.get_netconf_id(),
                 "user": session.get_user(),
+                "parent_xpath": parent_xpath,
             }
         else:
             extra_info = {}
