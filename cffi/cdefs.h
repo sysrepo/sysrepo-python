@@ -44,11 +44,17 @@ sr_log_level_t sr_log_get_syslog(void);
 typedef struct sr_conn_ctx_s sr_conn_ctx_t;
 typedef struct sr_session_ctx_s sr_session_ctx_t;
 typedef enum sr_conn_flag_e {
-	SR_CONN_CACHE_RUNNING,
-	SR_CONN_CTX_SET_PRIV_PARSED,
+	SR_CONN_DEFAULT,
 	...
 } sr_conn_flag_t;
-typedef uint32_t sr_conn_options_t;
+
+typedef enum {
+    SR_CTX_DEFAULT,
+    SR_CTX_NO_PRINTED,
+    SR_CTX_SET_PRIV_PARSED,
+    ...
+} sr_context_flag_t;
+
 typedef enum sr_datastore_e {
 	SR_DS_STARTUP,
 	SR_DS_RUNNING,
@@ -76,8 +82,10 @@ struct timespec {
     long tv_nsec;
 };
 
-int sr_connect(const sr_conn_options_t, sr_conn_ctx_t **);
+int sr_connect(const uint32_t opts, sr_conn_ctx_t **);
 int sr_disconnect(sr_conn_ctx_t *);
+void sr_cache_running(int);
+uint32_t sr_context_options(uint32_t, int, uint32_t *);
 const struct ly_ctx *sr_acquire_context(sr_conn_ctx_t *);
 void sr_release_context(sr_conn_ctx_t *);
 int sr_install_module(sr_conn_ctx_t *, const char *, const char *, const char **);
