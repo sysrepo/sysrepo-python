@@ -227,7 +227,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
         session = SysrepoSession(session, True)
         module = c2str(module)
         xpath = c2str(xpath)
-        root_xpath = ("/%s:*" % module) if xpath is None else xpath
+        changes_root_xpath = ("/%s:*" % module) if xpath is None else ""
         subscription = ffi.from_handle(priv)
         callback = subscription.callback
         private_data = subscription.private_data
@@ -259,7 +259,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
                 # gathered now.
                 changes = list(
                     session.get_changes(
-                        root_xpath + "//.",
+                        changes_root_xpath + "//.",
                         include_implicit_defaults=subscription.include_implicit_defaults,
                         include_deleted_values=subscription.include_deleted_values,
                     )
@@ -289,7 +289,7 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
         else:
             changes = list(
                 session.get_changes(
-                    root_xpath + "//.",
+                    changes_root_xpath + "//.",
                     include_implicit_defaults=subscription.include_implicit_defaults,
                     include_deleted_values=subscription.include_deleted_values,
                 )
