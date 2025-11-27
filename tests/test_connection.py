@@ -87,3 +87,9 @@ class ConnectionTest(unittest.TestCase):
             self.assertEqual(pwd.getpwnam(owner).pw_uid, os.geteuid())
             self.assertEqual(grp.getgrnam(group).gr_gid, os.getegid())
             self.assertEqual(perm, 0o600)
+
+    def test_conn_start_session_with_printed_context(self):
+        with sysrepo.SysrepoConnection(not_printed=False) as conn:
+            sess = conn.start_session()
+            self.assertEqual(sess.get_datastore(), "running")
+            sess.stop()

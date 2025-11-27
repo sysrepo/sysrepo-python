@@ -36,13 +36,18 @@ class SysrepoConnection:
 
     __slots__ = ("cdata",)
 
-    def __init__(self, cache_running: bool = False):
+    def __init__(self, cache_running: bool = False, not_printed: bool = True):
         """
         :arg cache_running:
             Always cache running datastore data which makes mainly repeated retrieval of
             data much faster. Affects all sessions created on this connection.
+        :arg not_printed:
+            The context is created from a sysrepo shared memory and is loaded faster.
+            Some operations on the context do not work.
         """
         ctx_flags = 0
+        if not_printed:
+            ctx_flags |= lib.SR_CTX_NO_PRINTED
 
         # mandatory flag to work with libyang-python
         ctx_flags |= lib.SR_CTX_SET_PRIV_PARSED
