@@ -4,6 +4,7 @@
 import asyncio
 import functools
 import logging
+import re
 from typing import Any, Callable
 
 from libyang.data import DNode
@@ -227,7 +228,9 @@ def module_change_callback(session, sub_id, module, xpath, event, req_id, priv):
         session = SysrepoSession(session, True)
         module = c2str(module)
         xpath = c2str(xpath)
-        root_xpath = ("/%s:*" % module) if xpath is None else xpath
+        # remove all filter conditions from 'xpath' as sysrepo already 
+        # provides changes that are filtered by the subscription's xpath
+        root_xpath = ("/%s:*" % module) if xpath is None else re.sub(r'\[.*?\]', '', xpath)
         subscription = ffi.from_handle(priv)
         callback = subscription.callback
         private_data = subscription.private_data
