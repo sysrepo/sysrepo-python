@@ -206,7 +206,12 @@ def update_config_cache(conf: Dict, changes: List[Change]) -> None:
     """
     for c in changes:
         if isinstance(c, ChangeCreated):
-            libyang.xpath_set(conf, c.xpath, c.value, after=c.after)
+            try:
+                libyang.xpath_set(conf, c.xpath, c.value, after=c.after)
+            except ValueError:
+                # The 'after' entry may have been deleted by a previous change
+                # in the same batch. Fall back to appending at the end.
+                libyang.xpath_set(conf, c.xpath, c.value)
         elif isinstance(c, ChangeModified):
             libyang.xpath_set(conf, c.xpath, c.value)
         elif isinstance(c, ChangeMoved):
