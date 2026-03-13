@@ -93,3 +93,9 @@ class ConnectionTest(unittest.TestCase):
             sess = conn.start_session()
             self.assertEqual(sess.get_datastore(), "running")
             sess.stop()
+
+    def test_conn_start_session_compile_obsolete(self):
+        with sysrepo.SysrepoConnection(compile_obsolete=True) as conn:
+            sess = conn.start_session()
+            self.assertEqual(sess.get_datastore(), "running")
+            sess.stop()

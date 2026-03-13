@@ -52,6 +52,7 @@ typedef enum {
     SR_CTX_DEFAULT,
     SR_CTX_NO_PRINTED,
     SR_CTX_SET_PRIV_PARSED,
+    SR_CTX_COMPILE_OBSOLETE,
     ...
 } sr_context_flag_t;
 

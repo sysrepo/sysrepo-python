@@ -36,7 +36,12 @@ class SysrepoConnection:
 
     __slots__ = ("cdata",)
 
-    def __init__(self, cache_running: bool = False, not_printed: bool = True):
+    def __init__(
+        self,
+        cache_running: bool = False,
+        not_printed: bool = True,
+        compile_obsolete: bool = False,
+    ):
         """
         :arg cache_running:
             Always cache running datastore data which makes mainly repeated retrieval of
@@ -48,6 +53,9 @@ class SysrepoConnection:
         ctx_flags = 0
         if not_printed:
             ctx_flags |= lib.SR_CTX_NO_PRINTED
+
+        if compile_obsolete:
+            ctx_flags |= lib.SR_CTX_COMPILE_OBSOLETE
 
         # mandatory flag to work with libyang-python
         ctx_flags |= lib.SR_CTX_SET_PRIV_PARSED
