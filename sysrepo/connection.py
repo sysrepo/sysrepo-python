@@ -18,6 +18,44 @@ LOG = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------------------
+def yang_module_dir() -> str:
+    """
+    Return the directory with internal sysrepo YANG modules.
+    """
+    return c2str(lib.sr_yang_module_dir())
+
+
+# ------------------------------------------------------------------------------
+def set_yang_module_dir(path: Optional[str]) -> None:
+    """
+    Set the directory with internal sysrepo YANG modules.
+
+    :arg path:
+        YANG module directory, or None to reset to the compiled default.
+    """
+    check_call(lib.sr_set_yang_module_dir, str2c(path))
+
+
+# ------------------------------------------------------------------------------
+def ly_yang_module_dir() -> str:
+    """
+    Return the directory with internal libyang YANG modules used by sysrepo.
+    """
+    return c2str(lib.sr_ly_yang_module_dir())
+
+
+# ------------------------------------------------------------------------------
+def set_ly_yang_module_dir(path: Optional[str]) -> None:
+    """
+    Set the directory with internal libyang YANG modules used by sysrepo.
+
+    :arg path:
+        YANG module directory, or None to reset to the libyang default.
+    """
+    check_call(lib.sr_set_ly_yang_module_dir, str2c(path))
+
+
+# ------------------------------------------------------------------------------
 class SysrepoConnection:
     """
     Create a connection to the sysrepo datastore. If possible (no other connections
