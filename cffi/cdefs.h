@@ -85,7 +85,7 @@ struct timespec {
 int sr_connect(const uint32_t opts, sr_conn_ctx_t **);
 int sr_disconnect(sr_conn_ctx_t *);
 void sr_cache_running(int);
-uint32_t sr_context_options(uint32_t, int, uint32_t *);
+int sr_context_options(uint32_t, int, uint32_t *);
 const struct ly_ctx *sr_acquire_context(sr_conn_ctx_t *);
 void sr_release_context(sr_conn_ctx_t *);
 int sr_install_module(sr_conn_ctx_t *, const char *, const char *, const char **);
