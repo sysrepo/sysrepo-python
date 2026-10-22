@@ -20,6 +20,44 @@ sysrepo.configure_logging(stderr_level=logging.ERROR)
 
 # ------------------------------------------------------------------------------
 class ConnectionTest(unittest.TestCase):
+    def test_yang_module_dir(self):
+        original = sysrepo.yang_module_dir()
+        self.assertIsInstance(original, str)
+        self.assertTrue(original)
+        try:
+            sysrepo.set_yang_module_dir(None)
+            default = sysrepo.yang_module_dir()
+            self.assertIsInstance(default, str)
+            self.assertTrue(default)
+
+            path = "/tmp/sysrepo-\u00e9/modules"
+            sysrepo.set_yang_module_dir(path)
+            self.assertEqual(sysrepo.yang_module_dir(), path)
+
+            sysrepo.set_yang_module_dir(None)
+            self.assertEqual(sysrepo.yang_module_dir(), default)
+        finally:
+            sysrepo.set_yang_module_dir(original)
+
+    def test_ly_yang_module_dir(self):
+        original = sysrepo.ly_yang_module_dir()
+        self.assertIsInstance(original, str)
+        self.assertTrue(original)
+        try:
+            sysrepo.set_ly_yang_module_dir(None)
+            default = sysrepo.ly_yang_module_dir()
+            self.assertIsInstance(default, str)
+            self.assertTrue(default)
+
+            path = "/tmp/libyang-\u00e9/modules"
+            sysrepo.set_ly_yang_module_dir(path)
+            self.assertEqual(sysrepo.ly_yang_module_dir(), path)
+
+            sysrepo.set_ly_yang_module_dir(None)
+            self.assertEqual(sysrepo.ly_yang_module_dir(), default)
+        finally:
+            sysrepo.set_ly_yang_module_dir(original)
+
     def test_conn_connect(self):
         conn = sysrepo.SysrepoConnection()
         conn.disconnect()

@@ -9,7 +9,13 @@ from .change import (
     ChangeMoved,
     update_config_cache,
 )
-from .connection import SysrepoConnection
+from .connection import (
+    SysrepoConnection,
+    yang_module_dir,
+    set_yang_module_dir,
+    ly_yang_module_dir,
+    set_ly_yang_module_dir,
+)
 from .errors import (
     SysrepoCallbackFailedError,
     SysrepoCallbackShelveError,
@@ -106,4 +112,8 @@ __all__ = [
     "configure_logging",
     "get_syslog_level",
     "get_stderr_level",
+    "yang_module_dir",
+    "set_yang_module_dir",
+    "ly_yang_module_dir",
+    "set_ly_yang_module_dir",
 ]
