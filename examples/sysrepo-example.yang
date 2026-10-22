@@ -1,6 +1,6 @@
 module sysrepo-example {
   yang-version 1.1;
-  namespace n;
+  namespace "urn:sysrepo:example";
   prefix p;
 
   feature turbo;

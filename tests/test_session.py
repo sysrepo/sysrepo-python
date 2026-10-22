@@ -62,7 +62,7 @@ class SessionTest(unittest.TestCase):
             self.assertIsInstance(data, list)
             modinfo = {
                 "name": "sysrepo-example",
-                "namespace": "n",
+                "namespace": "urn:sysrepo:example",
                 "feature": ["turbo"],
                 "location": ANY,
             }
